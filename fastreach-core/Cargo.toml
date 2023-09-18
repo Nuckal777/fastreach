@@ -1,0 +1,18 @@
+[package]
+name = "fastreach-core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4"
+byteorder = "1.4"
+geo = "0.26"
+memmap2 = "0.7"
+rstar = "0.11"
+rudac = "0.8"
+smallvec = "1.11"
+
+[dev-dependencies]
+approx = "0.5"
