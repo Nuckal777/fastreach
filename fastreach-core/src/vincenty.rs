@@ -2,11 +2,11 @@ use std::f64::consts;
 
 const EARTH_RADIUS: f64 = 6371.009;
 
-/// takes a (lat,lon) and returns a (lat, lon)
+/// takes a (lon,lat) and returns a (lon, lat)
 #[must_use]
 pub fn spherical_walk(point: (f64, f64), angle: f64, distance: f64) -> (f64, f64) {
-    let lat = point.0 / 180.0 * consts::PI;
-    let lon = point.1 / 180.0 * consts::PI;
+    let lon = point.0 / 180.0 * consts::PI;
+    let lat = point.1 / 180.0 * consts::PI;
     let rad = angle / 180.0 * consts::PI;
 
     let s_alpha = lat.cos() * rad.sin();
@@ -22,12 +22,12 @@ pub fn spherical_walk(point: (f64, f64), angle: f64, distance: f64) -> (f64, f64
     let lambda = lambda_upper.atan2(lambda_lower);
     let l2 = lambda + lon;
 
-    let result_lat = phi2 * 180.0 / consts::PI;
     let result_lon = l2 * 180.0 / consts::PI;
-    (result_lat, result_lon)
+    let result_lat = phi2 * 180.0 / consts::PI;
+    (result_lon, result_lat)
 }
 
-/// takes a (lat, lon) and returns a Vec<(lat, lon)>
+/// takes a (lon, lat) and returns a Vec<(lon, lat)>
 #[must_use]
 pub fn spherical_circle(point: (f64, f64), vertecies: usize, distance: f64) -> Vec<(f64, f64)> {
     let step = 360.0 / vertecies as f64;

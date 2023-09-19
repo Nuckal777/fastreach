@@ -348,11 +348,13 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
 
     pub fn nodes_within(
         &self,
-        node: &'a Node<'b>,
+        node_idx: usize,
         start: NaiveDateTime,
         duration: chrono::Duration,
     ) -> Result<Vec<TimedNode<'a, 'b>>, Error> {
+        let node = &self.graph.nodes[node_idx];
         let mut arrivals = HashMap::<u32, NaiveDateTime>::new();
+        arrivals.insert(node_idx.try_into()?, start);
         let mut heap = rudac::heap::FibonacciHeap::<TimedNode<'a, 'b>>::init_min();
         let max_time = start + duration;
         heap.push(TimedNode::new(node, chrono::Duration::zero()));
@@ -385,7 +387,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         let result: Vec<TimedNode<'a, 'b>> = arrivals
             .iter()
             .map(|(key, val)| TimedNode {
-                duration: *val - start,
+                duration: max_time - *val,
                 node: &self.graph.nodes[*key as usize],
             })
             .collect();
@@ -401,15 +403,20 @@ struct DedupNode {
 
 impl DedupNode {
     fn new(lat: f32, lon: f32) -> DedupNode {
-        DedupNode { lat: lat.to_ne_bytes(), lon: lon.to_ne_bytes() }
+        DedupNode {
+            lat: lat.to_ne_bytes(),
+            lon: lon.to_ne_bytes(),
+        }
     }
 }
 
 #[must_use]
-pub fn dedup_by_coords<'a, 'b, 'c>(nodes: &'c[TimedNode<'a, 'b>]) -> Vec<&'c TimedNode<'a, 'b>> {
+pub fn dedup_by_coords<'a, 'b, 'c>(nodes: &'c [TimedNode<'a, 'b>]) -> Vec<&'c TimedNode<'a, 'b>> {
     let mut loc_to_dur = HashMap::<DedupNode, &TimedNode>::new();
     for n in nodes {
-        let old = loc_to_dur.entry(DedupNode::new(n.node.lat(), n.node.lon())).or_insert(n);
+        let old = loc_to_dur
+            .entry(DedupNode::new(n.node.lat(), n.node.lon()))
+            .or_insert(n);
         if n.duration < old.duration {
             *old = n;
         }

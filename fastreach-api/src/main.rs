@@ -30,7 +30,7 @@ struct IsochroneBody {
 struct IsochroneReply {
     area: f64,
     diameter: f64,
-    geometry: geojson::Value,
+    geometry: geojson::GeoJson,
 }
 
 #[tokio::main]
@@ -46,7 +46,6 @@ async fn main() {
                     warp::http::StatusCode::BAD_REQUEST,
                 );
             };
-            let start_station = &graph.nodes[*start_idx];
             let algo = IsochroneDijsktra::new(&graph);
             let Some(start_time) = NaiveDateTime::from_timestamp_millis(body.start) else {
                 return warp::reply::with_status(
@@ -55,7 +54,7 @@ async fn main() {
                 );
             };
             let Ok(reached) =
-                algo.nodes_within(start_station, start_time, Duration::minutes(body.minutes))
+                algo.nodes_within(*start_idx, start_time, Duration::minutes(body.minutes))
             else {
                 return warp::reply::with_status(
                     warp::reply::json(&"failed dijsktra".to_owned()),
@@ -69,21 +68,22 @@ async fn main() {
                 .into_iter()
                 .map(|r| {
                     let distance = MOVE_SPEED * r.duration.num_minutes() as f64;
-                    spherical_circle((r.node.lat() as f64, r.node.lon() as f64), 8, distance)
+                    spherical_circle((r.node.lon() as f64, r.node.lat() as f64), 8, distance)
                 })
                 .map(|verts| {
                     let mut coords: Vec<Coord<f64>> =
-                        verts.iter().map(|t| geo::Coord::from(*t)).collect();
+                        verts.into_iter().map(geo::Coord::from).collect();
                     coords.push(coords[0]);
                     let line_string = LineString::new(coords);
                     Polygon::new(line_string, vec![])
                 })
                 .collect();
+
             let merged = cascade::union(polys);
             let iso_reply = IsochroneReply {
                 area: merged.geodesic_area_signed() / 1_000_000.0,
                 diameter: cascade::diameter(&merged) / 1000.0,
-                geometry: geojson::Value::from(&merged),
+                geometry: geojson::GeoJson::from(&merged),
             };
             warp::reply::with_status(warp::reply::json(&iso_reply), warp::http::StatusCode::OK)
         });
