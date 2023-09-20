@@ -27,7 +27,6 @@
                 '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
         }).addTo(map);
         geo.addTo(map);
-        console.log("hurra");
         return {
             destroy: () => {
                 if (map !== null) {

@@ -1,11 +1,27 @@
 import type { GeoJsonObject } from "geojson";
 
+interface IsochroneCall {
+    request: IsochroneRequest;
+    response: IsochroneResponse;
+}
+
+interface IsochroneRequest {
+    name: string;
+    minutes: number;
+    start: Date;
+}
+
 interface IsochroneResponse {
     area: number;
     diameter: number;
     geometry: GeoJsonObject;
 }
 
-type IsochroneResponseHandler = (res: IsochroneResponse) => void;
+type IsochroneCallHandler = (res: IsochroneCall) => void;
 
-export type { IsochroneResponse, IsochroneResponseHandler };
+export type {
+    IsochroneCall,
+    IsochroneRequest,
+    IsochroneResponse,
+    IsochroneCallHandler,
+};
