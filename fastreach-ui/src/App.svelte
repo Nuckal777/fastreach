@@ -1,6 +1,6 @@
 <script lang="ts">
     import IsochroneForm from "./lib/IsochroneForm.svelte";
-    import IsochroneSummary from "./lib/IsochroneSummary.svelte";
+    import IsochroneTable from "./lib/IsochroneTable.svelte";
     import Map from "./lib/Map.svelte";
     import Toggle from "./lib/Toggle.svelte";
     import type { IsochroneCall } from "./lib/types";
@@ -23,9 +23,7 @@
         <div class="map-overlay">
             <Toggle>
                 <h2>Isochrones</h2>
-                {#each isochrones as iso}
-                    <IsochroneSummary isochroneCall={iso} />
-                {/each}
+                <IsochroneTable {isochrones} />
             </Toggle>
         </div>
     </div>
@@ -52,7 +50,8 @@
     }
 
     .map-overlay {
-        background-color: white;
+        background-color: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(3px);
         border-radius: 5px;
         margin: 10px;
         padding: 5px;

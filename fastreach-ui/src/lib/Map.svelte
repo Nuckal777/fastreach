@@ -3,8 +3,17 @@
 
     import L, { control } from "leaflet";
 
+    const isoOpts: L.GeoJSONOptions[] = [
+        "#0078e7ff",
+        "#f98948ff",
+        "#2a7f62ff",
+        "#802392ff",
+        "#a31621ff",
+    ].map((c) => {
+        return { style: { color: c } };
+    });
     let map: L.Map | null = null;
-    let geo: L.GeoJSON = L.geoJSON();
+    let geos: L.GeoJSON[] = [];
     export let geometries: GeoJsonObject[] = [];
     $: updateGeoLayer(geometries);
 
@@ -12,9 +21,15 @@
         if (map === null) {
             return;
         }
-        map.removeLayer(geo);
-        geo = L.geoJson(geometries);
-        geo.addTo(map);
+        for (let g of geos) {
+            map.removeLayer(g);
+        }
+        geos = [];
+        for (const [i, g] of geometries.entries()) {
+            const layer = L.geoJSON(g, isoOpts[i % isoOpts.length]);
+            layer.addTo(map);
+            geos.push(layer);
+        }
     }
 
     function initialize(container: string | HTMLElement) {
@@ -26,7 +41,6 @@
             attribution:
                 '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
         }).addTo(map);
-        geo.addTo(map);
         return {
             destroy: () => {
                 if (map !== null) {
