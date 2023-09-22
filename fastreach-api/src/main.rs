@@ -68,13 +68,15 @@ async fn main() {
                 .into_iter()
                 .map(|r| {
                     let distance = MOVE_SPEED * r.duration.num_minutes() as f64;
-                    spherical_circle((r.node.lon() as f64, r.node.lat() as f64), 8, distance)
+                    spherical_circle(
+                        Coord::from((r.node.lon() as f64, r.node.lat() as f64)),
+                        8,
+                        distance,
+                    )
                 })
-                .map(|verts| {
-                    let mut coords: Vec<Coord<f64>> =
-                        verts.into_iter().map(geo::Coord::from).collect();
-                    coords.push(coords[0]);
-                    let line_string = LineString::new(coords);
+                .map(|mut verts| {
+                    verts.push(verts[0]);
+                    let line_string = LineString::new(verts);
                     Polygon::new(line_string, vec![])
                 })
                 .collect();
