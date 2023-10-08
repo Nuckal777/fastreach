@@ -21,7 +21,8 @@ lazy_static! {
 
 #[derive(serde_derive::Deserialize)]
 struct IsochroneBody {
-    name: String,
+    // JS cannot deal with large integers in JSON
+    id: String,
     start: i64,
     minutes: i64,
 }
@@ -40,7 +41,13 @@ async fn main() {
         .and(warp::path!("api" / "v1" / "isochrone"))
         .and(warp::body::json::<IsochroneBody>())
         .map(move |body: IsochroneBody| {
-            let Some(start_idx) = graph.names.get(&body.name) else {
+            let Ok(id) = str::parse::<u64>(&body.id) else {
+                return warp::reply::with_status(
+                    warp::reply::json(&"cannot parse id".to_owned()),
+                    warp::http::StatusCode::BAD_REQUEST,
+                );
+            };
+            let Some(start_idx) = graph.ids.get(&id) else {
                 return warp::reply::with_status(
                     warp::reply::json(&"station not found".to_owned()),
                     warp::http::StatusCode::BAD_REQUEST,

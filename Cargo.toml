@@ -4,3 +4,4 @@ members = [
     "fastreach-core",
     "fastreach-api",
 ]
+resolver = "2"

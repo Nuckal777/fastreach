@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Read, str::Utf8Error};
+use std::{collections::HashMap, str::Utf8Error};
 
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
@@ -16,7 +16,7 @@ impl<'a> Node<'a> {
     pub fn lat(&self) -> f32 {
         unsafe {
             // can only error when len of slice is not 4 which panics beforehand
-            f32::from_le_bytes(self.data[..4].try_into().unwrap_unchecked())
+            f32::from_le_bytes(self.data[8..12].try_into().unwrap_unchecked())
         }
     }
 
@@ -24,14 +24,14 @@ impl<'a> Node<'a> {
     pub fn lon(&self) -> f32 {
         unsafe {
             // can only error when len of slice is not 4 which panics beforehand
-            f32::from_le_bytes(self.data[4..8].try_into().unwrap_unchecked())
+            f32::from_le_bytes(self.data[12..16].try_into().unwrap_unchecked())
         }
     }
 
     /// # Errors
     /// When name is not utf-8 encoded.
     pub fn name(&self) -> Result<&str, Utf8Error> {
-        std::str::from_utf8(&self.data[12..])
+        std::str::from_utf8(&self.data[20..])
     }
 }
 
@@ -184,7 +184,7 @@ impl<'a> Iterator for OperatingPeriodIter<'a> {
 
 pub struct Graph<'a> {
     pub nodes: Vec<Node<'a>>,
-    pub names: HashMap<String, usize>,
+    pub ids: HashMap<u64, usize>,
 }
 
 type Error = Box<dyn std::error::Error>;
@@ -194,15 +194,15 @@ impl<'a> Graph<'a> {
         let mut reader = std::io::Cursor::new(data);
         let node_count = reader.read_u32::<LE>()?;
         let mut nodes = Vec::with_capacity(node_count as usize);
-        let mut names = HashMap::<String, usize>::new();
+        let mut ids = HashMap::<u64, usize>::new();
         for i in 0..node_count {
             let start: usize = reader.position().try_into()?;
-            // 2 bytes lat and lon
+            let id = reader.read_u64::<LE>()?;
+            ids.insert(id, i as usize);
+            // 2 * 4 bytes lat and lon
             reader.set_position(reader.position() + 8);
-            let name_len = reader.read_u32::<LE>()? as usize;
-            let mut name_buf = vec![0_u8; name_len];
-            reader.read_exact(&mut name_buf)?;
-            names.insert(String::from_utf8(name_buf)?, i as usize);
+            let name_len = reader.read_u32::<LE>()? as u64;
+            reader.set_position(reader.position() + name_len);
             let end: usize = reader.position().try_into()?;
             nodes.push(Node {
                 data: &data[start..end],
@@ -224,7 +224,7 @@ impl<'a> Graph<'a> {
                 data: &data[offset..end],
             });
         }
-        Ok(Graph { nodes, names })
+        Ok(Graph { nodes, ids })
     }
 }
 
@@ -234,6 +234,7 @@ pub struct TimedNode<'a, 'b> {
 }
 
 impl<'a, 'b> TimedNode<'a, 'b> {
+    #[must_use]
     pub fn new(node: &'a Node<'b>, duration: chrono::Duration) -> Self {
         TimedNode { node, duration }
     }
@@ -264,6 +265,7 @@ pub struct IsochroneDijsktra<'a, 'b> {
 }
 
 impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
+
     #[must_use]
     pub fn new(graph: &'a Graph<'b>) -> Self {
         Self { graph }

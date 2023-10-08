@@ -5,7 +5,7 @@
 </script>
 
 <tr>
-    <td>{isochroneCall.request.name}</td>
+    <td>{isochroneCall.name}</td>
     <td
         >{isochroneCall.request.start.toLocaleDateString()}
         {isochroneCall.request.start.toLocaleTimeString()}</td

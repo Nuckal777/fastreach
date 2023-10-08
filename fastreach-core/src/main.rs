@@ -9,12 +9,14 @@ use fastreach_core::{
 use geo::{Coord, GeodesicArea, LineString, Polygon};
 use memmap2::Mmap;
 
+const ERFURT_HBF: u64 = 13_973_471_588_854_917_578;
+
 fn main() {
     let file = File::open("graph.bin").expect("failed to open graph data");
     let mapping = unsafe { Mmap::map(&file).expect("failed mmap") };
     let graph = Graph::from_slice(&mapping).expect("failed to parse data");
     let start = std::time::Instant::now();
-    let station_idx = graph.names.get("Erfurt Hbf").unwrap();
+    let station_idx = graph.ids.get(&ERFURT_HBF).unwrap();
     let algo = IsochroneDijsktra::new(&graph);
     let reached = algo
         .nodes_within(

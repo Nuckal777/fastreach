@@ -1,39 +1,51 @@
 <script lang="ts">
-    import type { IsochroneResponse, IsochroneCallHandler } from "./types";
+    import type { Node, IsochroneConfiguration } from "./types";
 
-    export let useIsochrone: IsochroneCallHandler = () => {};
+    enum FilterState {
+        Empty,
+        Match,
+        Ambiguous,
+    }
+
+    export let useNodes: (nodes: IsochroneConfiguration) => void;
     let station = "Erfurt Hbf";
     let minutes = 30;
-    let start = "2022-07-23T10:15:00";
+    let start = "2023-09-26T10:15:00";
 
-    async function doPost() {
-        const startDate = new Date(start);
-        const res = await fetch("/api/v1/isochrone", {
-            method: "POST",
-            body: JSON.stringify({
-                name: station,
-                minutes: minutes,
-                start: startDate.getTime(),
-            }),
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
+    export let nodes: Node[];
+    let matchingNodes: Node[] = [];
+    let filterState = FilterState.Empty;
+    let filterText: string = "";
 
-        if (res.status !== 200) {
-            console.log(`POST isochrone failed: ${res.status}`);
+    function filterNodes(name: string) {
+        matchingNodes = nodes.filter((node) => node.name.includes(name));
+        if (matchingNodes.length === 0) {
+            filterState = FilterState.Empty;
+            filterText = `No station name contains ${name}`;
             return;
         }
-        const result = (await res.json()) as IsochroneResponse;
-        useIsochrone({
-            request: {
-                minutes: minutes,
-                name: station,
-                start: startDate,
-            },
-            response: result,
+        if (matchingNodes.length === 1) {
+            filterState = FilterState.Match;
+            const precision = 4;
+            const matching = matchingNodes[0];
+            filterText = `${matching.name}\nLon: ${matching.coords[0].toFixed(
+                precision
+            )} Lat: ${matching.coords[1].toFixed(precision)}`;
+            return;
+        }
+        filterState = FilterState.Ambiguous;
+        filterText = `Ambiguous: ${matchingNodes.length} stations match`;
+    }
+
+    function createConfiguration() {
+        useNodes({
+            minutes: minutes,
+            nodes: matchingNodes,
+            start: new Date(start),
         });
     }
+
+    $: filterNodes(station);
 </script>
 
 <form class="pure-form pure-form-aligned">
@@ -49,6 +61,7 @@
                 bind:value={station}
             />
         </div>
+        <p>{filterText}</p>
         <div class="pure-control-group">
             <label for="minutes">Minutes of travel:</label>
             <input
@@ -76,8 +89,11 @@
             <input
                 type="button"
                 class="pure-button pure-button-primary"
-                value="Calculate isochrone"
-                on:click={doPost}
+                value={filterState === FilterState.Ambiguous
+                    ? "Specify station"
+                    : "Calculate isochrone"}
+                disabled={filterState === FilterState.Empty}
+                on:click={createConfiguration}
             />
         </div>
     </fieldset>

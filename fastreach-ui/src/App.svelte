@@ -1,5 +1,5 @@
 <script lang="ts">
-    import IsochroneForm from "./lib/IsochroneForm.svelte";
+    import IsochroneConfig from "./lib/IsochroneConfig.svelte";
     import IsochroneTable from "./lib/IsochroneTable.svelte";
     import Map from "./lib/Map.svelte";
     import Toggle from "./lib/Toggle.svelte";
@@ -17,7 +17,7 @@
         <div class="map-overlay">
             <Toggle>
                 <h2>Fastreach</h2>
-                <IsochroneForm useIsochrone={addIsochrone} />
+                <IsochroneConfig useIsochrone={addIsochrone} />
             </Toggle>
         </div>
         <div class="map-overlay">
@@ -59,6 +59,8 @@
         height: fit-content;
         border: 2px solid rgba(0, 0, 0, 0.2);
         pointer-events: auto;
+        max-height: calc(80vh - 105px);
+        overflow: scroll;
     }
 
     .map {
