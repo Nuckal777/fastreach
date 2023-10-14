@@ -1,18 +1,24 @@
 <script lang="ts">
+    export let right = false;
+
     function toggle() {
         open = !open;
     }
 
     let open = true;
-    $: text = open ? "<" : ">";
+    $: text = open ? "-" : "+";
 </script>
 
-{#if open}
-    <button class="small-btn border" on:click={toggle}>{text}</button>
+<button
+    class="small-btn"
+    class:no-border={!open}
+    class:border={open}
+    class:float-right={right}
+    on:click={toggle}>{text}</button
+>
+<div class:hidden={!open}>
     <slot />
-{:else}
-    <button class="small-btn no-border" on:click={toggle}>{text}</button>
-{/if}
+</div>
 
 <style>
     .small-btn {
@@ -22,7 +28,6 @@
         line-height: 1.5em;
         background-color: transparent;
         text-align: center;
-        display: inline-block;
         vertical-align: middle;
     }
     .small-btn:hover {
@@ -34,5 +39,8 @@
     }
     .no-border {
         border: 2px;
+    }
+    .float-right {
+        float: right;
     }
 </style>

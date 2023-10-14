@@ -8,9 +8,9 @@
     }
 
     export let useNodes: (nodes: IsochroneConfiguration) => void;
-    let station = "Erfurt Hbf";
-    let minutes = 30;
-    let start = "2023-09-26T10:15:00";
+    export let station = "";
+    export let minutes = 0;
+    export let start = "";
 
     export let nodes: Node[];
     let matchingNodes: Node[] = [];

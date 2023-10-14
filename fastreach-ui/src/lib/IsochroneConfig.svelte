@@ -1,18 +1,20 @@
 <script lang="ts">
     import IsochroneForm from "./IsochroneForm.svelte";
     import StationSelect from "./StationSelect.svelte";
-    import type { NodeResponse, Node, IsochroneCallHandler, IsochroneConfiguration, IsochroneResponse } from "./types";
+    import { nodes } from "./store";
+    import type {
+        IsochroneCallHandler,
+        IsochroneConfiguration,
+        IsochroneResponse,
+    } from "./types";
 
     export let useIsochrone: IsochroneCallHandler = () => {};
 
-    let nodes: Node[] = [];
     let ambiguousConfig: IsochroneConfiguration | undefined;
 
-    let nodesPromise = fetchNodes();
-    async function fetchNodes() {
-        const res = await fetch("/nodes.json.br");
-        nodes = (await res.json()) as NodeResponse;
-    }
+    let station = "Erfurt Hbf";
+    let minutes = 30;
+    let start = "2023-09-26T10:15:00";
 
     async function useNodes(config: IsochroneConfiguration) {
         if (config.nodes.length === 0) {
@@ -60,17 +62,21 @@
                 start: config.start,
             },
             response: result,
-            name: target.name
+            name: target.name,
         });
     }
 </script>
 
-{#await nodesPromise}
+{#if $nodes.length === 0}
     <p>Loading...</p>
-{:then}
-    {#if ambiguousConfig === undefined}
-        <IsochroneForm nodes={nodes} useNodes={useNodes}></IsochroneForm>
-    {:else}
-        <StationSelect config={ambiguousConfig} useConfiguration={doPost}></StationSelect>
-    {/if}
-{/await}
+{:else if ambiguousConfig === undefined}
+    <IsochroneForm
+        nodes={$nodes}
+        {useNodes}
+        bind:station
+        bind:minutes
+        bind:start
+    />
+{:else}
+    <StationSelect config={ambiguousConfig} useConfiguration={doPost} />
+{/if}

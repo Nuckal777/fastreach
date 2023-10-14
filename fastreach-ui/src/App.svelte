@@ -1,15 +1,25 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import IsochroneConfig from "./lib/IsochroneConfig.svelte";
     import IsochroneTable from "./lib/IsochroneTable.svelte";
     import Map from "./lib/Map.svelte";
     import Toggle from "./lib/Toggle.svelte";
-    import type { IsochroneCall } from "./lib/types";
+    import { nodes } from "./lib/store";
+    import type { IsochroneCall, NodeResponse } from "./lib/types";
 
     let isochrones: IsochroneCall[] = [];
 
     function addIsochrone(iso: IsochroneCall) {
         isochrones = [...isochrones, iso];
     }
+
+    async function fetchNodes() {
+        const res = await fetch("/nodes.json.br");
+        const nodeRes = (await res.json()) as NodeResponse;
+        nodes.set(nodeRes);
+    }
+
+    onMount(fetchNodes);
 </script>
 
 <main class="main">
@@ -21,7 +31,7 @@
             </Toggle>
         </div>
         <div class="map-overlay">
-            <Toggle>
+            <Toggle right>
                 <h2>Isochrones</h2>
                 <IsochroneTable {isochrones} />
             </Toggle>
@@ -60,7 +70,7 @@
         border: 2px solid rgba(0, 0, 0, 0.2);
         pointer-events: auto;
         max-height: calc(80vh - 105px);
-        overflow: scroll;
+        overflow: auto;
     }
 
     .map {
