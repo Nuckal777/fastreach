@@ -19,6 +19,8 @@ lazy_static! {
     };
 }
 
+const MAX_MINUTES_DEFAULT: i64 = 120;
+
 #[derive(serde_derive::Deserialize)]
 struct IsochroneBody {
     // JS cannot deal with large integers in JSON
@@ -36,11 +38,21 @@ struct IsochroneReply {
 
 #[tokio::main]
 async fn main() {
+    let max_minutes = match std::env::var("FASTREACH_MAX_MINUTES") {
+        Ok(val) => str::parse(&val).unwrap_or(MAX_MINUTES_DEFAULT),
+        Err(_) => MAX_MINUTES_DEFAULT,
+    };
     let graph = Arc::new(Graph::from_slice(&GRAPH_DATA).expect("failed to parse graph"));
     let handler = warp::post()
         .and(warp::path!("api" / "v1" / "isochrone"))
         .and(warp::body::json::<IsochroneBody>())
         .map(move |body: IsochroneBody| {
+            if body.minutes < 0 || body.minutes > max_minutes {
+                return warp::reply::with_status(
+                    warp::reply::json(&"minutes out of range".to_owned()),
+                    warp::http::StatusCode::BAD_REQUEST,
+                );
+            }
             let Ok(id) = str::parse::<u64>(&body.id) else {
                 return warp::reply::with_status(
                     warp::reply::json(&"cannot parse id".to_owned()),
