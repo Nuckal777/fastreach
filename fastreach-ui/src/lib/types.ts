@@ -34,6 +34,11 @@ interface Node {
 
 type NodeResponse = Node[];
 
+interface NodeResponseState {
+    response: NodeResponse
+    error: string,
+}
+
 export type {
     IsochroneConfiguration,
     IsochroneCall,
@@ -42,4 +47,5 @@ export type {
     IsochroneCallHandler,
     Node,
     NodeResponse,
+    NodeResponseState,
 };

@@ -15,8 +15,15 @@
 
     async function fetchNodes() {
         const res = await fetch("/nodes.json.br");
+        if (!res.ok) {
+            nodes.set({
+                response: [],
+                error: `HTTP request failed, status code: ${res.status}`,
+            });
+            return;
+        }
         const nodeRes = (await res.json()) as NodeResponse;
-        nodes.set(nodeRes);
+        nodes.set({ response: nodeRes, error: "" });
     }
 
     onMount(fetchNodes);

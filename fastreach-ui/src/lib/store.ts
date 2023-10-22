@@ -1,4 +1,7 @@
 import { writable } from "svelte/store";
-import type { NodeResponse } from "./types";
+import type { NodeResponseState } from "./types";
 
-export const nodes = writable<NodeResponse>([]);
+export const nodes = writable<NodeResponseState>({
+    error: "",
+    response: [],
+});

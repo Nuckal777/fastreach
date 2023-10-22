@@ -15,7 +15,8 @@
     }
 </script>
 
-<p>Click a station calculate isochrone.</p>
+<p>Click a station to calculate isochrone.</p>
+<hr />
 {#each stations as station}
     <input
         type="button"

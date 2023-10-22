@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Back from "./Back.svelte";
     import IsochroneForm from "./IsochroneForm.svelte";
     import StationSelect from "./StationSelect.svelte";
     import { nodes } from "./store";
@@ -11,6 +12,7 @@
     export let useIsochrone: IsochroneCallHandler = () => {};
 
     let ambiguousConfig: IsochroneConfiguration | undefined;
+    let error = "";
 
     let station = "Erfurt Hbf";
     let minutes = 30;
@@ -51,7 +53,7 @@
         });
 
         if (res.status !== 200) {
-            console.log(`POST isochrone failed: ${res.status}`);
+            error = `HTTP request failed, status code: ${res.status}`;
             return;
         }
         const result = (await res.json()) as IsochroneResponse;
@@ -67,16 +69,24 @@
     }
 </script>
 
-{#if $nodes.length === 0}
+{#if $nodes.error !== ""}
+    <p>{$nodes.error}</p>
+{:else if $nodes.response.length === 0}
     <p>Loading...</p>
+{:else if error !== ""}
+    <Back onBack={() => (error = "")}>
+        <p>{error}</p>
+    </Back>
 {:else if ambiguousConfig === undefined}
     <IsochroneForm
-        nodes={$nodes}
+        nodes={$nodes.response}
         {useNodes}
         bind:station
         bind:minutes
         bind:start
     />
 {:else}
-    <StationSelect config={ambiguousConfig} useConfiguration={doPost} />
+    <Back onBack={() => (ambiguousConfig = undefined)}>
+        <StationSelect config={ambiguousConfig} useConfiguration={doPost} />
+    </Back>
 {/if}
