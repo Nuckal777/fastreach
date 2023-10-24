@@ -16,7 +16,7 @@
 
     let station = "Erfurt Hbf";
     let minutes = 30;
-    let start = "2023-09-26T10:15:00";
+    let start = "2023-10-17T10:15:00";
 
     async function useNodes(config: IsochroneConfiguration) {
         if (config.nodes.length === 0) {

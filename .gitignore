@@ -3,6 +3,8 @@
 
 # Data
 graph.bin
+nodes*.json
+nodes*.json.br
 
 # Logs
 logs

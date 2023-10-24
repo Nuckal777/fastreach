@@ -14,7 +14,7 @@
     }
 
     async function fetchNodes() {
-        const res = await fetch("/nodes.json.br");
+        const res = await fetch("/nodes-v1.json");
         if (!res.ok) {
             nodes.set({
                 response: [],

@@ -1,0 +1,21 @@
+version: "3.3"
+services:
+  ui:
+    build:
+      context: .
+      dockerfile: ui.Dockerfile
+    ports:
+    # Host:Container
+    - "443:443"
+    volumes:
+    - ./Caddyfile:/etc/caddy/Caddyfile
+    - ./fastreach-ui/nodes-v1.json:/usr/share/caddy/nodes-v1.json
+    - ./fastreach-ui/nodes-v1.json.br:/usr/share/caddy/nodes-v1.json.br
+    restart: on-failure
+  server:
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    volumes:
+    - ./graph.bin:/data/graph.bin
+    restart: on-failure

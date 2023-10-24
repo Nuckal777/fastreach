@@ -12,14 +12,16 @@ use lazy_static::lazy_static;
 use memmap2::Mmap;
 use warp::Filter;
 
+const MAX_MINUTES_DEFAULT: i64 = 120;
+const GRAPH_DEFAULT: &str = "graph.bin";
+
 lazy_static! {
     static ref GRAPH_DATA: Mmap = {
-        let file = File::open("graph.bin").expect("failed to open graph data");
+        let path = std::env::var("FASTREACH_GRAPH").unwrap_or_else(|_| GRAPH_DEFAULT.to_owned());
+        let file = File::open(path).expect("failed to open graph data");
         unsafe { Mmap::map(&file).expect("failed mmap") }
     };
 }
-
-const MAX_MINUTES_DEFAULT: i64 = 120;
 
 #[derive(serde_derive::Deserialize)]
 struct IsochroneBody {
@@ -43,6 +45,7 @@ async fn main() {
         Err(_) => MAX_MINUTES_DEFAULT,
     };
     let graph = Arc::new(Graph::from_slice(&GRAPH_DATA).expect("failed to parse graph"));
+    let node_count = graph.nodes.len();
     let handler = warp::post()
         .and(warp::path!("api" / "v1" / "isochrone"))
         .and(warp::body::json::<IsochroneBody>())
@@ -109,5 +112,15 @@ async fn main() {
             warp::reply::with_status(warp::reply::json(&iso_reply), warp::http::StatusCode::OK)
         });
 
-    warp::serve(handler).run(([0, 0, 0, 0], 8080)).await;
+    let (_addr, serve) =
+        warp::serve(handler).bind_with_graceful_shutdown(([0, 0, 0, 0], 8080), async move {
+            tokio::signal::ctrl_c()
+                .await
+                .expect("failed to listen to shutdown signal");
+        });
+
+    println!("Serving {node_count} nodes on 0.0.0.0:8080");
+    serve.await;
+
+    println!("Bye");
 }
