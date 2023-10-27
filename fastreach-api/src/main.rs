@@ -3,7 +3,7 @@ use std::{fs::File, sync::Arc};
 use chrono::{Duration, NaiveDateTime};
 use fastreach_core::{
     cascade,
-    graph::{dedup_by_coords, Graph, IsochroneDijsktra},
+    graph::{dedup_by_coords, dedup_by_coverage, Graph, IsochroneDijsktra},
     vincenty::spherical_circle,
     MOVE_SPEED,
 };
@@ -84,7 +84,7 @@ async fn main() {
                 );
             };
 
-            let deduped_nodes = dedup_by_coords(&reached);
+            let deduped_nodes = dedup_by_coverage(dedup_by_coords(&reached));
 
             let polys: Vec<geo::Polygon<f64>> = deduped_nodes
                 .into_iter()

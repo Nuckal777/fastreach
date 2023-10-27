@@ -2,6 +2,7 @@ use std::{collections::HashMap, str::Utf8Error};
 
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use geo::{HaversineDestination, HaversineDistance};
 use smallvec::SmallVec;
 
 pub struct Node<'a> {
@@ -32,6 +33,14 @@ impl<'a> Node<'a> {
     /// When name is not utf-8 encoded.
     pub fn name(&self) -> Result<&str, Utf8Error> {
         std::str::from_utf8(&self.data[20..])
+    }
+}
+
+impl<'a> rstar::RTreeObject for Node<'a> {
+    type Envelope = rstar::AABB<[f32; 2]>;
+
+    fn envelope(&self) -> Self::Envelope {
+        rstar::AABB::from_point([self.lon(), self.lat()])
     }
 }
 
@@ -248,6 +257,12 @@ impl<'a, 'b> PartialEq for TimedNode<'a, 'b> {
 
 impl<'a, 'b> Eq for TimedNode<'a, 'b> {}
 
+impl<'a, 'b> TimedNode<'a, 'b> {
+    fn radius(&self) -> f32 {
+        self.duration.num_minutes() as f32 * super::MOVE_SPEED as f32
+    }
+}
+
 impl<'a, 'b> PartialOrd for TimedNode<'a, 'b> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.duration.partial_cmp(&other.duration)
@@ -260,12 +275,19 @@ impl<'a, 'b> Ord for TimedNode<'a, 'b> {
     }
 }
 
+impl<'a, 'b> rstar::RTreeObject for &TimedNode<'a, 'b> {
+    type Envelope = rstar::AABB<[f32; 2]>;
+
+    fn envelope(&self) -> Self::Envelope {
+        self.node.envelope()
+    }
+}
+
 pub struct IsochroneDijsktra<'a, 'b> {
     graph: &'a Graph<'b>,
 }
 
 impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
-
     #[must_use]
     pub fn new(graph: &'a Graph<'b>) -> Self {
         Self { graph }
@@ -424,4 +446,37 @@ pub fn dedup_by_coords<'a, 'b, 'c>(nodes: &'c [TimedNode<'a, 'b>]) -> Vec<&'c Ti
         }
     }
     loc_to_dur.values().copied().collect()
+}
+
+#[must_use]
+pub fn dedup_by_coverage<'a, 'b, 'c>(
+    mut nodes: Vec<&'c TimedNode<'a, 'b>>,
+) -> Vec<&'c TimedNode<'a, 'b>> {
+    nodes.sort_unstable_by_key(|n| -n.duration);
+    let mut tree = rstar::RTree::bulk_load(nodes.clone());
+    let mut removals = Vec::<&'c TimedNode<'a, 'b>>::new();
+    for node in nodes {
+        let center = geo::Point::from([node.node.lon(), node.node.lat()]);
+        let radius = node.radius();
+        let upper: [f32; 2] = center.haversine_destination(45.0, radius).into();
+        let lower: [f32; 2] = center.haversine_destination(225.0, radius).into();
+        let envelope = rstar::AABB::from_corners(upper, lower);
+        for contained in tree.locate_in_envelope(&envelope) {
+            // distance + r1 - r2 < 0 => circle2 contains circle1
+            // distance + r2 - r1 < 0 => circle1 contains circle2
+            if contained.node.lon() == node.node.lon() && contained.node.lat() == node.node.lat() {
+                continue;
+            }
+            let dist = geo::Point::from([contained.node.lon(), contained.node.lat()])
+                .haversine_distance(&geo::Point::from([node.node.lon(), node.node.lat()]));
+            if dist + contained.radius() < radius {
+                removals.push(contained);
+            }
+        }
+        for removal in &removals {
+            tree.remove(removal);
+        }
+        removals.clear();
+    }
+    tree.iter().copied().collect()
 }

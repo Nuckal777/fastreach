@@ -6,7 +6,7 @@ use fastreach_core::{
     graph::{self, Graph, IsochroneDijsktra},
     vincenty, MOVE_SPEED,
 };
-use geo::{Coord, GeodesicArea, LineString, Polygon};
+use geo::{Coord, CoordsIter, GeodesicArea, LineString, Polygon};
 use memmap2::Mmap;
 
 const ERFURT_HBF: u64 = 13_973_471_588_854_917_578;
@@ -22,14 +22,14 @@ fn main() {
         .nodes_within(
             *station_idx,
             NaiveDateTime::new(
-                NaiveDate::from_ymd_opt(2022, 7, 23).unwrap(),
+                NaiveDate::from_ymd_opt(2023, 10, 18).unwrap(),
                 NaiveTime::from_hms_opt(10, 15, 30).unwrap(),
             ),
-            Duration::minutes(90),
+            Duration::minutes(180),
         )
         .expect("failed dijsktra");
 
-    let deduped_nodes = graph::dedup_by_coords(&reached);
+    let deduped_nodes = graph::dedup_by_coverage(graph::dedup_by_coords(&reached));
 
     let polys: Vec<geo::Polygon<f64>> = deduped_nodes
         .into_iter()
