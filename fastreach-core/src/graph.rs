@@ -29,6 +29,11 @@ impl<'a> Node<'a> {
         }
     }
 
+    #[must_use]
+    pub fn to_point(&self) -> geo::Point<f32> {
+        geo::Point::from([self.lon(), self.lat()])
+    }
+
     /// # Errors
     /// When name is not utf-8 encoded.
     pub fn name(&self) -> Result<&str, Utf8Error> {
@@ -199,6 +204,9 @@ pub struct Graph<'a> {
 type Error = Box<dyn std::error::Error>;
 
 impl<'a> Graph<'a> {
+    /// Parses the given slice into the graph.
+    /// # Errors
+    /// When file is too small.
     pub fn from_slice(data: &[u8]) -> Result<Graph, Error> {
         let mut reader = std::io::Cursor::new(data);
         let node_count = reader.read_u32::<LE>()?;
@@ -259,7 +267,20 @@ impl<'a, 'b> Eq for TimedNode<'a, 'b> {}
 
 impl<'a, 'b> TimedNode<'a, 'b> {
     fn radius(&self) -> f32 {
-        self.duration.num_minutes() as f32 * super::MOVE_SPEED as f32
+        self.duration.num_minutes() as f32 * super::MOVE_SPEED
+    }
+
+    #[must_use]
+    pub fn to_poly(&self) -> geo::Polygon<f64> {
+        let distance = super::MOVE_SPEED as f64 * self.duration.num_minutes() as f64;
+        let mut verts = crate::vincenty::spherical_circle(
+            geo::Coord::from((self.node.lon() as f64, self.node.lat() as f64)),
+            8,
+            distance,
+        );
+        verts.push(verts[0]);
+        let line_string = geo::LineString::new(verts);
+        geo::Polygon::new(line_string, vec![])
     }
 }
 
@@ -285,12 +306,16 @@ impl<'a, 'b> rstar::RTreeObject for &TimedNode<'a, 'b> {
 
 pub struct IsochroneDijsktra<'a, 'b> {
     graph: &'a Graph<'b>,
+    periods: Vec<OperatingPeriod<'b>>,
 }
 
 impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
     #[must_use]
     pub fn new(graph: &'a Graph<'b>) -> Self {
-        Self { graph }
+        Self {
+            graph,
+            periods: Vec::new(),
+        }
     }
 
     fn u16_to_time(number: u16) -> NaiveTime {
@@ -319,25 +344,27 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         Ok((1 << off & period.valid_days()[idx]) > 0)
     }
 
-    fn next_journey(edge: &Edge<'b>, start: NaiveDateTime) -> Result<Option<Journey<'b>>, Error> {
+    fn next_journey(
+        &mut self,
+        edge: &Edge<'b>,
+        start: NaiveDateTime,
+    ) -> Result<Option<Journey<'b>>, Error> {
         let mut departure = NaiveTime::from_hms_opt(23, 59, 59).unwrap();
         let mut result = None;
+        self.periods.extend(edge.operating_periods());
         for journey in edge.journeys() {
             let current_departure = Self::u16_to_time(journey.departure());
             if current_departure > departure || current_departure < start.time() {
                 continue;
             }
-            // TODO: maybe it be worth to construct a local vec
-            let period = &edge
-                .operating_periods()
-                .nth(journey.operating_period_index() as usize)
-                .unwrap();
+            let period = &self.periods[journey.operating_period_index() as usize];
             if !Self::valid_on(period, start.date())? {
                 continue;
             }
             departure = current_departure;
             result = Some(journey);
         }
+        self.periods.clear();
         Ok(result)
     }
 
@@ -350,10 +377,11 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
     }
 
     fn next_journey_duration(
+        &mut self,
         edge: &Edge<'b>,
         start: NaiveDateTime,
     ) -> Result<Option<chrono::Duration>, Error> {
-        let opt_journey = Self::next_journey(edge, start)?;
+        let opt_journey = self.next_journey(edge, start)?;
         if opt_journey.is_none() {
             return Ok(None);
         }
@@ -371,7 +399,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
     }
 
     pub fn nodes_within(
-        &self,
+        &mut self,
         node_idx: usize,
         start: NaiveDateTime,
         duration: chrono::Duration,
@@ -386,7 +414,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
             let departure = start + current.duration;
             for out in &current.node.outgoing {
                 let opt_walk = Self::get_walk(out);
-                let opt_journey = Self::next_journey_duration(out, departure)?;
+                let opt_journey = self.next_journey_duration(out, departure)?;
                 let out_duration = match (opt_walk, opt_journey) {
                     (None, None) => continue,
                     (None, Some(j)) => j,
@@ -451,24 +479,22 @@ pub fn dedup_by_coords<'a, 'b, 'c>(nodes: &'c [TimedNode<'a, 'b>]) -> Vec<&'c Ti
 #[must_use]
 pub fn dedup_by_coverage<'a, 'b, 'c>(
     mut nodes: Vec<&'c TimedNode<'a, 'b>>,
-) -> Vec<&'c TimedNode<'a, 'b>> {
+) -> rstar::RTree<&'c TimedNode<'a, 'b>> {
     nodes.sort_unstable_by_key(|n| -n.duration);
     let mut tree = rstar::RTree::bulk_load(nodes.clone());
     let mut removals = Vec::<&'c TimedNode<'a, 'b>>::new();
     for node in nodes {
-        let center = geo::Point::from([node.node.lon(), node.node.lat()]);
+        let center = node.node.to_point();
         let radius = node.radius();
         let upper: [f32; 2] = center.haversine_destination(45.0, radius).into();
         let lower: [f32; 2] = center.haversine_destination(225.0, radius).into();
         let envelope = rstar::AABB::from_corners(upper, lower);
         for contained in tree.locate_in_envelope(&envelope) {
-            // distance + r1 - r2 < 0 => circle2 contains circle1
-            // distance + r2 - r1 < 0 => circle1 contains circle2
-            if contained.node.lon() == node.node.lon() && contained.node.lat() == node.node.lat() {
+            let contained_point = contained.node.to_point();
+            if center == contained_point {
                 continue;
             }
-            let dist = geo::Point::from([contained.node.lon(), contained.node.lat()])
-                .haversine_distance(&geo::Point::from([node.node.lon(), node.node.lat()]));
+            let dist = contained_point.haversine_distance(&center);
             if dist + contained.radius() < radius {
                 removals.push(contained);
             }
@@ -478,5 +504,5 @@ pub fn dedup_by_coverage<'a, 'b, 'c>(
         }
         removals.clear();
     }
-    tree.iter().copied().collect()
+    tree
 }

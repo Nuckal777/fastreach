@@ -1,13 +1,25 @@
-use geo::{BooleanOps, MultiPolygon, Polygon, ConvexHull, GeodesicDistance};
+use geo::{BooleanOps, ConvexHull, GeodesicDistance, MultiPolygon, Polygon};
 use rstar::{ParentNode, RTree, RTreeNode, RTreeObject};
 
+use crate::graph::TimedNode;
+
 #[must_use]
-pub fn union(polys: Vec<Polygon<f64>>) -> MultiPolygon<f64> {
+pub fn union_polys(polys: Vec<Polygon<f64>>) -> MultiPolygon<f64> {
     let tree = RTree::<Polygon<f64>>::bulk_load(polys);
     bottom_up_fold_reduce(
         &tree,
         || MultiPolygon::<f64>::new(Vec::new()),
         |acc, elem| acc.union(&MultiPolygon::new(vec![elem.clone()])),
+        |a, b| a.union(&b),
+    )
+}
+
+#[must_use]
+pub fn union(tree: &RTree<&TimedNode<'_, '_>>) -> MultiPolygon<f64> {
+    bottom_up_fold_reduce(
+        tree,
+        || MultiPolygon::<f64>::new(Vec::new()),
+        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.to_poly()])),
         |a, b| a.union(&b),
     )
 }
@@ -59,7 +71,7 @@ pub fn diameter(poly: &MultiPolygon<f64>) -> f64 {
             if distance > diameter {
                 diameter = distance;
             }
-        }   
+        }
     }
     diameter
 }

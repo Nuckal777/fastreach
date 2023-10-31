@@ -4,9 +4,8 @@ use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use fastreach_core::{
     cascade,
     graph::{self, Graph, IsochroneDijsktra},
-    vincenty, MOVE_SPEED,
 };
-use geo::{Coord, CoordsIter, GeodesicArea, LineString, Polygon};
+use geo::{GeodesicArea, Polygon};
 use memmap2::Mmap;
 
 const ERFURT_HBF: u64 = 13_973_471_588_854_917_578;
@@ -17,7 +16,7 @@ fn main() {
     let graph = Graph::from_slice(&mapping).expect("failed to parse data");
     let start = std::time::Instant::now();
     let station_idx = graph.ids.get(&ERFURT_HBF).unwrap();
-    let algo = IsochroneDijsktra::new(&graph);
+    let mut algo = IsochroneDijsktra::new(&graph);
     let reached = algo
         .nodes_within(
             *station_idx,
@@ -29,25 +28,9 @@ fn main() {
         )
         .expect("failed dijsktra");
 
-    let deduped_nodes = graph::dedup_by_coverage(graph::dedup_by_coords(&reached));
-
-    let polys: Vec<geo::Polygon<f64>> = deduped_nodes
-        .into_iter()
-        .map(|r| {
-            let distance = MOVE_SPEED * r.duration.num_minutes() as f64;
-            vincenty::spherical_circle(
-                Coord::from((r.node.lon() as f64, r.node.lat() as f64)),
-                8,
-                distance,
-            )
-        })
-        .map(|mut verts| {
-            verts.push(verts[0]);
-            let line_string = LineString::new(verts);
-            Polygon::new(line_string, vec![])
-        })
-        .collect();
-    let merged = cascade::union(polys);
+    let deduped_tree = graph::dedup_by_coverage(graph::dedup_by_coords(&reached));
+    let polys: Vec<Polygon<f64>> = deduped_tree.into_iter().map(|n| n.to_poly()).collect();
+    let merged = cascade::union_polys(polys);
     let area = merged.geodesic_area_signed() / 1_000_000.0;
     let diameter = cascade::diameter(&merged) / 1_000.0;
     let end = std::time::Instant::now();
