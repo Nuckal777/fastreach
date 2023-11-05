@@ -1,4 +1,4 @@
-FROM rust:1.73-slim-bookworm as build
+FROM rust:1.73-bookworm as build
 WORKDIR /app
 COPY . /app
 RUN cargo build --release
