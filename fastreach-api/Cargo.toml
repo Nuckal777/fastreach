@@ -14,5 +14,5 @@ lazy_static = "1.4"
 memmap2 = "0.7"
 serde = "1"
 serde_derive = "1"
-tokio = { version = "1", features = ["full"] }
-warp = "0.3"
+tokio = { version = "1", features = ["macros", "signal", "rt-multi-thread"] }
+warp = { version = "0.3", default-features = false }
