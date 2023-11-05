@@ -255,6 +255,36 @@ impl<'a, 'b> TimedNode<'a, 'b> {
     pub fn new(node: &'a Node<'b>, duration: chrono::Duration) -> Self {
         TimedNode { node, duration }
     }
+
+    fn radius(&self) -> f32 {
+        self.duration.num_minutes() as f32 * super::MOVE_SPEED
+    }
+
+    #[must_use]
+    pub fn to_points(&self) -> Vec<geo::Coord::<f64>> {
+        let distance = super::MOVE_SPEED as f64 * self.duration.num_minutes() as f64;
+        crate::vincenty::spherical_circle(
+            geo::Coord::from((self.node.lon() as f64, self.node.lat() as f64)),
+            8,
+            distance,
+        )
+    }
+
+    #[must_use]
+    pub fn to_poly(&self) -> geo::Polygon<f64> {
+        let mut verts = self.to_points();
+        verts.push(verts[0]);
+        let line_string = geo::LineString::new(verts);
+        geo::Polygon::new(line_string, vec![])
+    }
+
+    fn to_aabb(&self) -> rstar::AABB<[f32; 2]> {
+        let center = self.node.to_point();
+        let radius = self.radius();
+        let upper: [f32; 2] = center.haversine_destination(45.0, radius).into();
+        let lower: [f32; 2] = center.haversine_destination(225.0, radius).into();
+        rstar::AABB::from_corners(upper, lower)
+    }
 }
 
 impl<'a, 'b> PartialEq for TimedNode<'a, 'b> {
@@ -264,25 +294,6 @@ impl<'a, 'b> PartialEq for TimedNode<'a, 'b> {
 }
 
 impl<'a, 'b> Eq for TimedNode<'a, 'b> {}
-
-impl<'a, 'b> TimedNode<'a, 'b> {
-    fn radius(&self) -> f32 {
-        self.duration.num_minutes() as f32 * super::MOVE_SPEED
-    }
-
-    #[must_use]
-    pub fn to_poly(&self) -> geo::Polygon<f64> {
-        let distance = super::MOVE_SPEED as f64 * self.duration.num_minutes() as f64;
-        let mut verts = crate::vincenty::spherical_circle(
-            geo::Coord::from((self.node.lon() as f64, self.node.lat() as f64)),
-            8,
-            distance,
-        );
-        verts.push(verts[0]);
-        let line_string = geo::LineString::new(verts);
-        geo::Polygon::new(line_string, vec![])
-    }
-}
 
 impl<'a, 'b> PartialOrd for TimedNode<'a, 'b> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -486,9 +497,7 @@ pub fn dedup_by_coverage<'a, 'b, 'c>(
     for node in nodes {
         let center = node.node.to_point();
         let radius = node.radius();
-        let upper: [f32; 2] = center.haversine_destination(45.0, radius).into();
-        let lower: [f32; 2] = center.haversine_destination(225.0, radius).into();
-        let envelope = rstar::AABB::from_corners(upper, lower);
+        let envelope = node.to_aabb();
         for contained in tree.locate_in_envelope(&envelope) {
             let contained_point = contained.node.to_point();
             if center == contained_point {

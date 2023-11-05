@@ -146,6 +146,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clipper-sys"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc6bccb550d47c390af7a601bee66a74fd3a01163feb85442021096f5533d2e5"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -235,6 +244,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "geo",
+ "geo-clipper",
  "memmap2",
  "rstar",
  "rudac",
@@ -328,6 +338,16 @@ dependencies = [
  "num-traits",
  "robust",
  "rstar",
+]
+
+[[package]]
+name = "geo-clipper"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c080ca0fbf8beeaad1c3bb420d00db56fa109f92cb8e985a0ff53fb5c2820bab"
+dependencies = [
+ "clipper-sys",
+ "geo-types",
 ]
 
 [[package]]

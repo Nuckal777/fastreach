@@ -1,4 +1,5 @@
-use geo::{BooleanOps, ConvexHull, GeodesicDistance, MultiPolygon, Polygon};
+use geo::{ConvexHull, GeodesicDistance, MultiPolygon, Polygon};
+use geo_clipper::Clipper;
 use rstar::{ParentNode, RTree, RTreeNode, RTreeObject};
 
 use crate::graph::TimedNode;
@@ -9,8 +10,8 @@ pub fn union_polys(polys: Vec<Polygon<f64>>) -> MultiPolygon<f64> {
     bottom_up_fold_reduce(
         &tree,
         || MultiPolygon::<f64>::new(Vec::new()),
-        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.clone()])),
-        |a, b| a.union(&b),
+        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.clone()]), 100.0),
+        |a, b| a.union(&b, 100.0),
     )
 }
 
@@ -19,8 +20,8 @@ pub fn union(tree: &RTree<&TimedNode<'_, '_>>) -> MultiPolygon<f64> {
     bottom_up_fold_reduce(
         tree,
         || MultiPolygon::<f64>::new(Vec::new()),
-        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.to_poly()])),
-        |a, b| a.union(&b),
+        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.to_poly()]), 100.0),
+        |a, b| a.union(&b, 100.0),
     )
 }
 
