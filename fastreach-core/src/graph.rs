@@ -1,7 +1,8 @@
-use std::{collections::HashMap, str::Utf8Error};
+use std::str::Utf8Error;
 
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use fnv::FnvHashMap;
 use geo::{HaversineDestination, HaversineDistance};
 use smallvec::SmallVec;
 
@@ -198,7 +199,7 @@ impl<'a> Iterator for OperatingPeriodIter<'a> {
 
 pub struct Graph<'a> {
     pub nodes: Vec<Node<'a>>,
-    pub ids: HashMap<u64, usize>,
+    pub ids: FnvHashMap<u64, usize>,
 }
 
 type Error = Box<dyn std::error::Error>;
@@ -211,7 +212,7 @@ impl<'a> Graph<'a> {
         let mut reader = std::io::Cursor::new(data);
         let node_count = reader.read_u32::<LE>()?;
         let mut nodes = Vec::with_capacity(node_count as usize);
-        let mut ids = HashMap::<u64, usize>::new();
+        let mut ids = FnvHashMap::<u64, usize>::default();
         for i in 0..node_count {
             let start: usize = reader.position().try_into()?;
             let id = reader.read_u64::<LE>()?;
@@ -261,7 +262,7 @@ impl<'a, 'b> TimedNode<'a, 'b> {
     }
 
     #[must_use]
-    pub fn to_points(&self) -> Vec<geo::Coord::<f64>> {
+    pub fn to_points(&self) -> Vec<geo::Coord<f64>> {
         let distance = super::MOVE_SPEED as f64 * self.duration.num_minutes() as f64;
         crate::vincenty::spherical_circle(
             geo::Coord::from((self.node.lon() as f64, self.node.lat() as f64)),
@@ -416,7 +417,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         duration: chrono::Duration,
     ) -> Result<Vec<TimedNode<'a, 'b>>, Error> {
         let node = &self.graph.nodes[node_idx];
-        let mut arrivals = HashMap::<u32, NaiveDateTime>::new();
+        let mut arrivals = FnvHashMap::<u32, NaiveDateTime>::default();
         arrivals.insert(node_idx.try_into()?, start);
         let mut heap = rudac::heap::FibonacciHeap::<TimedNode<'a, 'b>>::init_min();
         let max_time = start + duration;
@@ -475,7 +476,7 @@ impl DedupNode {
 
 #[must_use]
 pub fn dedup_by_coords<'a, 'b, 'c>(nodes: &'c [TimedNode<'a, 'b>]) -> Vec<&'c TimedNode<'a, 'b>> {
-    let mut loc_to_dur = HashMap::<DedupNode, &TimedNode>::new();
+    let mut loc_to_dur = FnvHashMap::<DedupNode, &TimedNode>::default();
     for n in nodes {
         let old = loc_to_dur
             .entry(DedupNode::new(n.node.lat(), n.node.lon()))

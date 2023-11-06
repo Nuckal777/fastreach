@@ -222,6 +222,7 @@ dependencies = [
  "approx",
  "byteorder",
  "chrono",
+ "fnv",
  "geo",
  "geo-clipper",
  "memmap2",

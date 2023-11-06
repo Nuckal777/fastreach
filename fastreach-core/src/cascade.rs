@@ -4,13 +4,15 @@ use rstar::{ParentNode, RTree, RTreeNode, RTreeObject};
 
 use crate::graph::TimedNode;
 
+const SCALE_FACTOR: f64 = 500.0;
+
 #[must_use]
 pub fn union_polys(polys: Vec<Polygon<f64>>) -> MultiPolygon<f64> {
     let tree = RTree::<Polygon<f64>>::bulk_load(polys);
     bottom_up_fold_reduce(
         &tree,
         || MultiPolygon::<f64>::new(Vec::new()),
-        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.clone()]), 100.0),
+        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.clone()]), SCALE_FACTOR),
         |a, b| a.union(&b, 100.0),
     )
 }
@@ -20,7 +22,7 @@ pub fn union(tree: &RTree<&TimedNode<'_, '_>>) -> MultiPolygon<f64> {
     bottom_up_fold_reduce(
         tree,
         || MultiPolygon::<f64>::new(Vec::new()),
-        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.to_poly()]), 100.0),
+        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.to_poly()]), SCALE_FACTOR),
         |a, b| a.union(&b, 100.0),
     )
 }
