@@ -1,29 +1,40 @@
-use geo::{ConvexHull, GeodesicDistance, MultiPolygon, Polygon};
+use geo::{ConvexHull, GeoFloat, HaversineDistance, MultiPolygon, Polygon};
 use geo_clipper::Clipper;
+use num_traits::FromPrimitive;
 use rstar::{ParentNode, RTree, RTreeNode, RTreeObject};
 
 use crate::graph::TimedNode;
 
-const SCALE_FACTOR: f64 = 500.0;
+const SCALE_FACTOR: f32 = 500.0;
 
 #[must_use]
-pub fn union_polys(polys: Vec<Polygon<f64>>) -> MultiPolygon<f64> {
-    let tree = RTree::<Polygon<f64>>::bulk_load(polys);
+pub fn union_polys<T: GeoFloat>(polys: Vec<Polygon<T>>) -> MultiPolygon<T> {
+    let tree = RTree::<Polygon<T>>::bulk_load(polys);
     bottom_up_fold_reduce(
         &tree,
-        || MultiPolygon::<f64>::new(Vec::new()),
-        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.clone()]), SCALE_FACTOR),
-        |a, b| a.union(&b, 100.0),
+        || MultiPolygon::<T>::new(Vec::new()),
+        |acc, elem| {
+            acc.union(
+                &MultiPolygon::new(vec![elem.clone()]),
+                num_traits::cast(SCALE_FACTOR).unwrap(),
+            )
+        },
+        |a, b| a.union(&b, num_traits::cast(SCALE_FACTOR).unwrap()),
     )
 }
 
 #[must_use]
-pub fn union(tree: &RTree<&TimedNode<'_, '_>>) -> MultiPolygon<f64> {
+pub fn union(tree: &RTree<&TimedNode<'_, '_>>) -> MultiPolygon<f32> {
     bottom_up_fold_reduce(
         tree,
-        || MultiPolygon::<f64>::new(Vec::new()),
-        |acc, elem| acc.union(&MultiPolygon::new(vec![elem.to_poly()]), SCALE_FACTOR),
-        |a, b| a.union(&b, 100.0),
+        || MultiPolygon::<f32>::new(Vec::new()),
+        |acc, elem| {
+            acc.union(
+                &MultiPolygon::new(vec![elem.to_poly()]),
+                num_traits::cast(SCALE_FACTOR).unwrap(),
+            )
+        },
+        |a, b| a.union(&b, num_traits::cast(SCALE_FACTOR).unwrap()),
     )
 }
 
@@ -64,13 +75,13 @@ where
 }
 
 #[must_use]
-pub fn diameter(poly: &MultiPolygon<f64>) -> f64 {
+pub fn diameter<T: GeoFloat + FromPrimitive>(poly: &MultiPolygon<T>) -> T {
     let hull = poly.convex_hull();
     // TODO: there is a linear algorithm to get the diameter in O(N) in euclidian space
-    let mut diameter = 0.0_f64;
+    let mut diameter = T::zero();
     for i in hull.exterior().points() {
         for j in hull.exterior().points() {
-            let distance = i.geodesic_distance(&j);
+            let distance = i.haversine_distance(&j);
             if distance > diameter {
                 diameter = distance;
             }

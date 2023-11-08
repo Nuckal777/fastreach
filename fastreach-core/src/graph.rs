@@ -3,7 +3,8 @@ use std::str::Utf8Error;
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use fnv::FnvHashMap;
-use geo::{HaversineDestination, HaversineDistance};
+use geo::{GeoFloat, HaversineDestination, HaversineDistance};
+use num_traits::FromPrimitive;
 use smallvec::SmallVec;
 
 pub struct Node<'a> {
@@ -262,17 +263,21 @@ impl<'a, 'b> TimedNode<'a, 'b> {
     }
 
     #[must_use]
-    pub fn to_points(&self) -> Vec<geo::Coord<f64>> {
-        let distance = super::MOVE_SPEED as f64 * self.duration.num_minutes() as f64;
+    pub fn to_points<T: GeoFloat + FromPrimitive>(&self) -> Vec<geo::Coord<T>> {
+        let distance = num_traits::cast::<f32, T>(super::MOVE_SPEED).unwrap()
+            * num_traits::cast::<i64, T>(self.duration.num_minutes()).unwrap();
         crate::vincenty::spherical_circle(
-            geo::Coord::from((self.node.lon() as f64, self.node.lat() as f64)),
+            geo::Coord::from((
+                num_traits::cast(self.node.lon()).unwrap(),
+                num_traits::cast(self.node.lat()).unwrap(),
+            )),
             8,
             distance,
         )
     }
 
     #[must_use]
-    pub fn to_poly(&self) -> geo::Polygon<f64> {
+    pub fn to_poly<T: GeoFloat + FromPrimitive>(&self) -> geo::Polygon<T> {
         let mut verts = self.to_points();
         verts.push(verts[0]);
         let line_string = geo::LineString::new(verts);

@@ -226,6 +226,7 @@ dependencies = [
  "geo",
  "geo-clipper",
  "memmap2",
+ "num-traits",
  "rstar",
  "rudac",
  "smallvec",

@@ -1,13 +1,18 @@
-use geo::{Coord, HaversineDestination, Point};
+use geo::{Coord, GeoFloat, HaversineDestination, Point};
+use num_traits::FromPrimitive;
 
 /// takes a (lon, lat) and returns a Vec<(lon, lat)>.
 /// distance in meters.
 #[must_use]
-pub fn spherical_circle(point: Coord, vertecies: usize, distance: f64) -> Vec<Coord> {
-    let step = 360.0 / vertecies as f64;
-    let mut points = Vec::<Coord>::with_capacity(vertecies);
+pub fn spherical_circle<T: GeoFloat + FromPrimitive>(
+    point: Coord<T>,
+    vertecies: usize,
+    distance: T,
+) -> Vec<Coord<T>> {
+    let step = num_traits::cast::<f32, T>(360.0).unwrap() / num_traits::cast(vertecies).unwrap();
+    let mut points = Vec::<Coord<T>>::with_capacity(vertecies);
     for i in 0..vertecies {
-        let angle = step * i as f64;
+        let angle = step * num_traits::cast(i).unwrap();
         points.push(
             Point::from(point)
                 .haversine_destination(angle, distance)

@@ -5,7 +5,7 @@ use fastreach_core::{
     cascade,
     graph::{dedup_by_coords, dedup_by_coverage, Graph, IsochroneDijsktra},
 };
-use geo::{GeodesicArea, Polygon};
+use geo::{Polygon, ChamberlainDuquetteArea};
 use lazy_static::lazy_static;
 use memmap2::Mmap;
 use warp::Filter;
@@ -31,8 +31,8 @@ struct IsochroneBody {
 
 #[derive(serde_derive::Serialize)]
 struct IsochroneReply {
-    area: f64,
-    diameter: f64,
+    area: f32,
+    diameter: f32,
     geometry: geojson::GeoJson,
 }
 
@@ -82,12 +82,13 @@ async fn main() {
                 );
             };
 
+            // depending on the specific hardware it may be faster to not dedup
             let deduped_tree = dedup_by_coverage(dedup_by_coords(&reached));
-            let polys: Vec<Polygon<f64>> = deduped_tree.into_iter().map(|n| n.to_poly()).collect();
+            let polys: Vec<Polygon<f32>> = deduped_tree.into_iter().map(|n| n.to_poly()).collect();
             let merged = cascade::union_polys(polys);
 
             let iso_reply = IsochroneReply {
-                area: merged.geodesic_area_signed() / 1_000_000.0,
+                area: merged.chamberlain_duquette_signed_area() / 1_000_000.0,
                 diameter: cascade::diameter(&merged) / 1000.0,
                 geometry: geojson::GeoJson::from(&merged),
             };
