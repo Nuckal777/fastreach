@@ -1,4 +1,7 @@
-use geo::{ConvexHull, GeoFloat, HaversineDistance, MultiPolygon, Polygon};
+use geo::{
+    BoundingRect, ConvexHull, CoordsIter, GeoFloat, HaversineDistance, Intersects, MultiPolygon,
+    Polygon,
+};
 use geo_clipper::Clipper;
 use num_traits::FromPrimitive;
 use rstar::{ParentNode, RTree, RTreeNode, RTreeObject};
@@ -14,12 +17,42 @@ pub fn union_polys<T: GeoFloat>(polys: Vec<Polygon<T>>) -> MultiPolygon<T> {
         &tree,
         || MultiPolygon::<T>::new(Vec::new()),
         |acc, elem| {
-            acc.union(
-                &MultiPolygon::new(vec![elem.clone()]),
-                num_traits::cast(SCALE_FACTOR).unwrap(),
-            )
+            if acc.exterior_coords_iter().count() == 0 {
+                return MultiPolygon::new(vec![elem.clone()]);
+            }
+            if acc
+                .bounding_rect()
+                .unwrap()
+                .intersects(&elem.bounding_rect().unwrap())
+            {
+                acc.union(
+                    &MultiPolygon::new(vec![elem.clone()]),
+                    num_traits::cast(SCALE_FACTOR).unwrap(),
+                )
+            } else {
+                let mut polys = acc.0;
+                polys.push(elem.clone());
+                MultiPolygon::new(polys)
+            }
         },
-        |a, b| a.union(&b, num_traits::cast(SCALE_FACTOR).unwrap()),
+        |a, b| {
+            if a.exterior_coords_iter().count() == 0 {
+                return b;
+            }
+            if b.exterior_coords_iter().count() == 0 {
+                return a;
+            }
+            if a.bounding_rect()
+                .unwrap()
+                .intersects(&b.bounding_rect().unwrap())
+            {
+                a.union(&b, num_traits::cast(SCALE_FACTOR).unwrap())
+            } else {
+                let mut polys = a.0;
+                polys.extend(b.0);
+                MultiPolygon::new(polys)
+            }
+        },
     )
 }
 
