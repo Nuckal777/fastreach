@@ -3,9 +3,9 @@ use std::{fs::File, sync::Arc};
 use chrono::{Duration, NaiveDateTime};
 use fastreach_core::{
     cascade,
-    graph::{dedup_by_coords, dedup_by_coverage, Graph, IsochroneDijsktra},
+    graph::{Graph, IsochroneDijsktra},
 };
-use geo::{Polygon, ChamberlainDuquetteArea};
+use geo::{ChamberlainDuquetteArea, Polygon};
 use lazy_static::lazy_static;
 use memmap2::Mmap;
 use warp::Filter;
@@ -82,9 +82,7 @@ async fn main() {
                 );
             };
 
-            // depending on the specific hardware it may be faster to not dedup
-            let deduped_tree = dedup_by_coverage(dedup_by_coords(&reached));
-            let polys: Vec<Polygon<f32>> = deduped_tree.into_iter().map(|n| n.to_poly()).collect();
+            let polys: Vec<Polygon<f32>> = reached.into_iter().map(|n| n.to_poly()).collect();
             let merged = cascade::union_polys(polys);
 
             let iso_reply = IsochroneReply {

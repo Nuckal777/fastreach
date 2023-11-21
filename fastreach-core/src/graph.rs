@@ -7,6 +7,8 @@ use geo::{GeoFloat, HaversineDestination, HaversineDistance};
 use num_traits::FromPrimitive;
 use smallvec::SmallVec;
 
+const MOVE_SPEED: f32 = 1000.0 / 12.0; // in m/min
+
 pub struct Node<'a> {
     // binary data
     data: &'a [u8],
@@ -259,12 +261,12 @@ impl<'a, 'b> TimedNode<'a, 'b> {
     }
 
     fn radius(&self) -> f32 {
-        self.duration.num_minutes() as f32 * super::MOVE_SPEED
+        self.duration.num_minutes() as f32 * MOVE_SPEED
     }
 
     #[must_use]
     pub fn to_points<T: GeoFloat + FromPrimitive>(&self) -> Vec<geo::Coord<T>> {
-        let distance = num_traits::cast::<f32, T>(super::MOVE_SPEED).unwrap()
+        let distance = num_traits::cast::<f32, T>(MOVE_SPEED).unwrap()
             * num_traits::cast::<i64, T>(self.duration.num_minutes()).unwrap();
         crate::vincenty::spherical_circle(
             geo::Coord::from((
@@ -421,7 +423,9 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         start: NaiveDateTime,
         duration: chrono::Duration,
     ) -> Result<Vec<TimedNode<'a, 'b>>, Error> {
+        let mut result: Vec<TimedNode<'a, 'b>> = Vec::new();
         let node = &self.graph.nodes[node_idx];
+        result.push(TimedNode::new(node, duration));
         let mut arrivals = FnvHashMap::<u32, NaiveDateTime>::default();
         arrivals.insert(node_idx.try_into()?, start);
         let mut heap = rudac::heap::FibonacciHeap::<TimedNode<'a, 'b>>::init_min();
@@ -445,79 +449,22 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
                 }
                 let stored_arrival = arrivals.get(&out.end()).unwrap_or(&NaiveDateTime::MAX);
                 if arrival < *stored_arrival {
+                    let out_node = &self.graph.nodes[out.end() as usize];
+                    let distance = current
+                        .node
+                        .to_point()
+                        .haversine_distance(&out_node.to_point());
+                    let current_radius =
+                        MOVE_SPEED * (duration - current.duration).num_minutes() as f32;
+                    let out_radius = MOVE_SPEED * (duration - total_duration).num_minutes() as f32;
+                    if distance + out_radius > current_radius {
+                        result.push(TimedNode::new(out_node, duration - total_duration));
+                    }
                     arrivals.insert(out.end(), arrival);
-                    heap.push(TimedNode::new(
-                        &self.graph.nodes[out.end() as usize],
-                        total_duration,
-                    ));
+                    heap.push(TimedNode::new(out_node, total_duration));
                 }
             }
         }
-        let result: Vec<TimedNode<'a, 'b>> = arrivals
-            .iter()
-            .map(|(key, val)| TimedNode {
-                duration: max_time - *val,
-                node: &self.graph.nodes[*key as usize],
-            })
-            .collect();
         Ok(result)
     }
-}
-
-#[derive(PartialEq, Eq, Hash)]
-struct DedupNode {
-    lat: [u8; 4],
-    lon: [u8; 4],
-}
-
-impl DedupNode {
-    fn new(lat: f32, lon: f32) -> DedupNode {
-        DedupNode {
-            lat: lat.to_ne_bytes(),
-            lon: lon.to_ne_bytes(),
-        }
-    }
-}
-
-#[must_use]
-pub fn dedup_by_coords<'a, 'b, 'c>(nodes: &'c [TimedNode<'a, 'b>]) -> Vec<&'c TimedNode<'a, 'b>> {
-    let mut loc_to_dur = FnvHashMap::<DedupNode, &TimedNode>::default();
-    for n in nodes {
-        let old = loc_to_dur
-            .entry(DedupNode::new(n.node.lat(), n.node.lon()))
-            .or_insert(n);
-        if n.duration < old.duration {
-            *old = n;
-        }
-    }
-    loc_to_dur.values().copied().collect()
-}
-
-#[must_use]
-pub fn dedup_by_coverage<'a, 'b, 'c>(
-    mut nodes: Vec<&'c TimedNode<'a, 'b>>,
-) -> rstar::RTree<&'c TimedNode<'a, 'b>> {
-    nodes.sort_unstable_by_key(|n| -n.duration);
-    let mut tree = rstar::RTree::bulk_load(nodes.clone());
-    let mut removals = Vec::<&'c TimedNode<'a, 'b>>::new();
-    for node in nodes {
-        let center = node.node.to_point();
-        let radius = node.radius();
-        let envelope = node.to_aabb();
-        for contained in tree.locate_in_envelope(&envelope) {
-            let contained_point = contained.node.to_point();
-            if center == contained_point {
-                continue;
-            }
-            let dist = contained_point.haversine_distance(&center);
-            if dist + contained.radius() < radius {
-                removals.push(contained);
-            }
-        }
-        for removal in &removals {
-            tree.remove(removal);
-        }
-        removals.clear();
-    }
-    tree
 }
