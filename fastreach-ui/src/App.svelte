@@ -6,7 +6,9 @@
     import Toggle from "./lib/Toggle.svelte";
     import { nodes } from "./lib/store";
     import type { IsochroneCall, NodeResponse } from "./lib/types";
+    import Info from "./lib/Info.svelte";
 
+    let infoOpen = true;
     let isochrones: IsochroneCall[] = [];
 
     function addIsochrone(iso: IsochroneCall) {
@@ -30,10 +32,17 @@
 </script>
 
 <main class="main">
+    {#if infoOpen}
+        <Info onClose={() => (infoOpen = false)}></Info>
+    {/if}
     <div class="overlay wrapper">
         <div class="map-overlay">
             <Toggle>
                 <h2>Fastreach</h2>
+                <button
+                    class="small-btn border float-right"
+                    on:click={() => (infoOpen = true)}>i</button
+                >
                 <IsochroneConfig useIsochrone={addIsochrone} />
             </Toggle>
         </div>
@@ -54,16 +63,20 @@
 
     .main {
         position: absolute;
+        pointer-events: none;
         left: 0px;
         right: 0px;
         z-index: 1;
+        height: 100%;
     }
 
     .overlay {
         position: absolute;
+        top: 0px;
         left: 0px;
         right: 0px;
         pointer-events: none;
+        z-index: 1;
     }
 
     .map-overlay {
