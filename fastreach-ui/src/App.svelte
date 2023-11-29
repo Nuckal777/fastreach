@@ -1,4 +1,5 @@
 <script lang="ts">
+    import "purecss/build/pure-min.css"
     import { onMount } from "svelte";
     import IsochroneConfig from "./lib/IsochroneConfig.svelte";
     import IsochroneTable from "./lib/IsochroneTable.svelte";
@@ -59,8 +60,6 @@
 </div>
 
 <style>
-    @import "https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css";
-
     .main {
         position: absolute;
         pointer-events: none;

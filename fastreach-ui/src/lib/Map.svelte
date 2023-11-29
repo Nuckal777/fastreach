@@ -1,4 +1,5 @@
 <script lang="ts">
+    import "leaflet/dist/leaflet.css";
     import type { GeoJsonObject } from "geojson";
 
     import L, { control } from "leaflet";
@@ -33,7 +34,8 @@
     }
 
     function initialize(container: string | HTMLElement) {
-        map = L.map(container, { zoomControl: false });
+        map = L.map(container, { zoomControl: false, attributionControl: false });
+        map.addControl(control.attribution({position: "bottomright", prefix: false}))
         map.addControl(control.zoom({ position: "bottomleft" }));
         map.setView({ lat: 50.97, lng: 11.035 }, 11);
         L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -56,10 +58,3 @@
         <slot />
     {/if}
 </div>
-
-<link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-/>
