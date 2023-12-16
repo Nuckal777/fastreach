@@ -1,7 +1,13 @@
 https://localhost:443
 
 root * /usr/share/caddy
-reverse_proxy /api/* http://server:8080
+route /api/* {
+    # global rate limit
+    rate_limit {host} 100r/m
+    # rate limit per "client"
+    rate_limit {remote.host} 25r/m
+    reverse_proxy http://server:8080
+}
 encode gzip
 file_server {
     precompressed br

@@ -53,7 +53,11 @@
         });
 
         if (res.status !== 200) {
-            error = `HTTP request failed, status code: ${res.status}`;
+            if (res.status === 429) {
+                error = "Please try again later.";
+            } else {
+                error = `HTTP request failed, status code: ${res.status}.`;
+            }
             return;
         }
         const result = (await res.json()) as IsochroneResponse;
