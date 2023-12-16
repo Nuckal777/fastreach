@@ -35,5 +35,7 @@
         width: fit-content;
         height: fit-content;
         border: 2px solid rgba(0, 0, 0, 0.2);
+        max-height: calc(80vh - 105px);
+        overflow: auto;
     }
 </style>
