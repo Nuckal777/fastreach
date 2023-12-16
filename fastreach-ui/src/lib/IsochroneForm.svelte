@@ -18,7 +18,9 @@
     let filterText: string = "";
 
     function filterNodes(name: string) {
-        matchingNodes = nodes.filter((node) => node.name.includes(name));
+        matchingNodes = nodes.filter((node) =>
+            node.name.toLowerCase().includes(name.toLowerCase()),
+        );
         if (matchingNodes.length === 0) {
             filterState = FilterState.Empty;
             filterText = `No station name contains ${name}`;
@@ -29,7 +31,7 @@
             const precision = 4;
             const matching = matchingNodes[0];
             filterText = `${matching.name}\nLon: ${matching.coords[0].toFixed(
-                precision
+                precision,
             )} Lat: ${matching.coords[1].toFixed(precision)}`;
             return;
         }
