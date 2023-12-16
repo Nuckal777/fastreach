@@ -8,7 +8,7 @@ use rstar::{ParentNode, RTree, RTreeNode, RTreeObject};
 
 use crate::graph::TimedNode;
 
-const SCALE_FACTOR: f32 = 500.0;
+const SCALE_FACTOR: f32 = 2000.0;
 
 #[must_use]
 pub fn union_polys<T: GeoFloat>(polys: Vec<Polygon<T>>) -> MultiPolygon<T> {
