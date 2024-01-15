@@ -3,9 +3,11 @@
 </script>
 
 <div class="info-back" on:click={onClose} on:keydown={onClose} role="region">
-    <div class="info-overlay" on:click|stopPropagation={() => {}}>
-        <button class="small-btn border float-right" on:click={onClose}
-            >x</button
+    <div class="info-overlay" on:click|stopPropagation={() => {}} role="dialog">
+        <button
+            class="small-btn border float-right"
+            on:click={onClose}
+            aria-label="close">x</button
         >
         <h2>Welcome to Fastreach</h2>
     </div>
