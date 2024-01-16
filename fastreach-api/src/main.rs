@@ -86,7 +86,7 @@ async fn main() {
             let merged = cascade::union_polys(polys);
 
             let iso_reply = IsochroneReply {
-                area: merged.chamberlain_duquette_signed_area() / 1_000_000.0,
+                area: merged.chamberlain_duquette_unsigned_area() / 1_000_000.0,
                 diameter: cascade::diameter(&merged) / 1000.0,
                 geometry: geojson::GeoJson::from(&merged),
             };

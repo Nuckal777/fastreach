@@ -1,6 +1,7 @@
-FROM rust:1.73-bookworm as build
+FROM rust:1.75-bookworm as build
 WORKDIR /app
 COPY . /app
+ENV RUSTFLAGS="-C target-cpu=native"
 RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian12

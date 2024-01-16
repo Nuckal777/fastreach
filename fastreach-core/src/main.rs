@@ -32,7 +32,7 @@ fn main() {
 
     let polys: Vec<Polygon<f32>> = reached.into_iter().map(|n| n.to_poly()).collect();
     let merged = cascade::union_polys(polys);
-    let area = merged.chamberlain_duquette_signed_area() / 1_000_000.0;
+    let area = merged.chamberlain_duquette_unsigned_area() / 1_000_000.0;
     let diameter = cascade::diameter(&merged) / 1_000.0;
     let end = std::time::Instant::now();
     println!("duration: {} ms", (end - start).as_millis());
