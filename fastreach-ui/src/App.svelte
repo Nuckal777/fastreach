@@ -1,5 +1,5 @@
 <script lang="ts">
-    import "purecss/build/pure-min.css"
+    import "purecss/build/pure-min.css";
     import { onMount } from "svelte";
     import IsochroneConfig from "./lib/IsochroneConfig.svelte";
     import IsochroneTable from "./lib/IsochroneTable.svelte";
@@ -14,6 +14,10 @@
 
     function addIsochrone(iso: IsochroneCall) {
         isochrones = [...isochrones, iso];
+    }
+
+    function removeIsochrone(index: number) {
+        isochrones = isochrones.toSpliced(index, 1);
     }
 
     async function fetchNodes() {
@@ -50,7 +54,7 @@
         <div class="map-overlay">
             <Toggle right>
                 <h2>Isochrones</h2>
-                <IsochroneTable {isochrones} />
+                <IsochroneTable {isochrones} onRemove={removeIsochrone} />
             </Toggle>
         </div>
     </div>

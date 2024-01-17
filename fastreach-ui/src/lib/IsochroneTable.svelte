@@ -3,6 +3,7 @@
     import type { IsochroneCall } from "./types";
 
     export let isochrones: IsochroneCall[] = [];
+    export let onRemove: (index: number) => void = () => {};
 </script>
 
 <table class="pure-table pure-table-bordered">
@@ -16,8 +17,8 @@
         </tr>
     </thead>
     <tbody>
-        {#each isochrones as iso}
-            <IsochroneRow isochroneCall={iso} />
+        {#each isochrones as iso, i}
+            <IsochroneRow isochroneCall={iso} index={i} onRemove={onRemove} />
         {/each}
     </tbody>
 </table>
