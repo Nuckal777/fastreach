@@ -7,6 +7,9 @@
         Ambiguous,
     }
 
+    const minMinutes = 5;
+    const maxMinutes = 120;
+
     export let useNodes: (nodes: IsochroneConfiguration) => void;
     export let station = "";
     export let minutes = 0;
@@ -47,6 +50,8 @@
         });
     }
 
+    const minutesExceeded = (m: number) => m < minMinutes || m > maxMinutes;
+
     $: filterNodes(station);
 </script>
 
@@ -71,12 +76,15 @@
                 class="fill-width"
                 name="minutes"
                 id="minutes"
-                min="5"
-                max="120"
+                min={minMinutes}
+                max={maxMinutes}
                 step="5"
                 bind:value={minutes}
             />
         </div>
+        {#if minutesExceeded(minutes)}
+            <p>Minutes must be between {minMinutes} and {maxMinutes}</p>
+        {/if}
         <div class="pure-control-group">
             <label for="start">Start date: </label>
             <input
@@ -94,7 +102,8 @@
                 value={filterState === FilterState.Ambiguous
                     ? "Specify station"
                     : "Calculate isochrone"}
-                disabled={filterState === FilterState.Empty}
+                disabled={filterState === FilterState.Empty ||
+                    minutesExceeded(minutes)}
                 on:click={createConfiguration}
             />
         </div>
