@@ -13,7 +13,7 @@
             class="small-btn border float-right remove"
             on:click={() => onRemove(index)}
         >
-            <sup>X</sup>
+        &#x2716;
         </button>
     </td>
     <td
@@ -43,7 +43,7 @@
     }
 
     .remove {
-        font-size: small;
+        margin-top: -0.15em;
         margin-left: 5px;
     }
 </style>
