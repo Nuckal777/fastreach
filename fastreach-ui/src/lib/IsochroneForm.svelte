@@ -100,7 +100,7 @@
                 type="button"
                 class="pure-button pure-button-primary"
                 value={filterState === FilterState.Ambiguous
-                    ? "Specify station"
+                    ? "Search stations"
                     : "Calculate isochrone"}
                 disabled={filterState === FilterState.Empty ||
                     minutesExceeded(minutes)}

@@ -14,6 +14,7 @@
             <th>Duration</th>
             <th>Area</th>
             <th>Diameter</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>

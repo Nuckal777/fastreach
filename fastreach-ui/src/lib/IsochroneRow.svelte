@@ -9,12 +9,6 @@
 <tr>
     <td>
         {isochroneCall.name}
-        <button
-            class="small-btn border float-right remove"
-            on:click={() => onRemove(index)}
-        >
-        &#x2716;
-        </button>
     </td>
     <td
         >{isochroneCall.request.start.toLocaleDateString()}
@@ -23,6 +17,14 @@
     <td>{isochroneCall.request.minutes} min</td>
     <td>{isochroneCall.response.area.toFixed(3)} km²</td>
     <td>{isochroneCall.response.diameter.toFixed(3)} km</td>
+    <td>
+        <button
+            class="small-btn border float-right remove"
+            on:click={() => onRemove(index)}
+        >
+        x
+        </button>
+    </td>
 </tr>
 
 <style>
@@ -43,7 +45,6 @@
     }
 
     .remove {
-        margin-top: -0.15em;
-        margin-left: 5px;
+        margin: -5px;
     }
 </style>
