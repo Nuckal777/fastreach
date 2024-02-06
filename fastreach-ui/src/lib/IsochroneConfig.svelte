@@ -28,6 +28,12 @@
             await doPost(config);
             return;
         }
+        let matchIdx = config.nodes.findIndex(n => n.name === station);
+        if (matchIdx !== -1) {
+            let match = config.nodes[matchIdx];
+            config.nodes[matchIdx] = config.nodes[0];
+            config.nodes[0] = match;
+        }
         if (config.nodes.length > 200) {
             config.nodes = config.nodes.slice(0, 200);
         }
