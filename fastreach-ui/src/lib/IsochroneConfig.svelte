@@ -17,6 +17,7 @@
     let station = "Erfurt Hbf";
     let minutes = 30;
     let start = "2023-10-17T10:15:00";
+    let jump = true;
 
     async function useNodes(config: IsochroneConfiguration) {
         if (config.nodes.length === 0) {
@@ -28,7 +29,7 @@
             await doPost(config);
             return;
         }
-        let matchIdx = config.nodes.findIndex(n => n.name === station);
+        let matchIdx = config.nodes.findIndex((n) => n.name === station);
         if (matchIdx !== -1) {
             let match = config.nodes[matchIdx];
             config.nodes[matchIdx] = config.nodes[0];
@@ -75,6 +76,9 @@
             },
             response: result,
             name: target.name,
+            lng: target.coords[0],
+            lat: target.coords[1],
+            jump,
         });
     }
 </script>
@@ -94,6 +98,7 @@
         bind:station
         bind:minutes
         bind:start
+        bind:jump
     />
 {:else}
     <Back onBack={() => (ambiguousConfig = undefined)}>

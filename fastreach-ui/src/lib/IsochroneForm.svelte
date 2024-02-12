@@ -14,6 +14,7 @@
     export let station = "";
     export let minutes = 0;
     export let start = "";
+    export let jump = true;
 
     export let nodes: Node[];
     let matchingNodes: Node[] = [];
@@ -94,6 +95,10 @@
                 id="start"
                 bind:value={start}
             />
+        </div>
+        <div class="pure-control-group">
+            <label for="jump">Jump to station:</label>
+            <input type="checkbox" name="jump" id="jump" bind:checked={jump} />
         </div>
         <div class="pure-controls">
             <input
