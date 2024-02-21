@@ -3,6 +3,7 @@
     import type { GeoJsonObject } from "geojson";
 
     import L, { control } from "leaflet";
+    import { mapLocation } from "./store";
 
     const isoOpts: L.GeoJSONOptions[] = [
         "#0078e7ff",
@@ -13,8 +14,6 @@
     ].map((c) => {
         return { style: { color: c } };
     });
-    export let lng = 0;
-    export let lat = 0;
     let map: L.Map | null = null;
     let geos: L.GeoJSON[] = [];
     export let geometries: GeoJsonObject[] = [];
@@ -41,17 +40,13 @@
             attributionControl: false,
         });
         map.addControl(
-            control.attribution({ position: "bottomright", prefix: false }),
+            control.attribution({ position: "bottomright", prefix: false })
         );
         map.addControl(control.zoom({ position: "bottomleft" }));
-        map.setView({ lat, lng }, 11);
-        map.on("moveend", () => {
-            if (map === null) {
-                return;
-            }
-            lat = map.getCenter().lat;
-            lng = map.getCenter().lng;
-        });
+        map.setView(
+            { lat: $mapLocation.lat, lng: $mapLocation.lng },
+            $mapLocation.zoom
+        );
         L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 15,
             attribution:
@@ -66,14 +61,10 @@
         };
     }
 
-    $: setView(lat, lng);
-
-    function setView(localLat: number, localLng: number) {
-        if (map === null) {
-            return;
-        }
-        map.setView({ lat: localLat, lng: localLng });
-    }
+    $: map?.setView(
+        { lat: $mapLocation.lat, lng: $mapLocation.lng },
+        $mapLocation.zoom
+    );
 </script>
 
 <div style="height:100%; width:100%;" use:initialize>

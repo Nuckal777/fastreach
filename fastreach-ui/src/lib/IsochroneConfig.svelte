@@ -2,7 +2,7 @@
     import Back from "./Back.svelte";
     import IsochroneForm from "./IsochroneForm.svelte";
     import StationSelect from "./StationSelect.svelte";
-    import { nodes } from "./store";
+    import { mapLocation, nodes } from "./store";
     import type {
         IsochroneCallHandler,
         IsochroneConfiguration,
@@ -68,6 +68,15 @@
             return;
         }
         const result = (await res.json()) as IsochroneResponse;
+        if (jump) {
+            mapLocation.update((loc) => {
+                return {
+                    lng: target.coords[0],
+                    lat: target.coords[1],
+                    zoom: loc.zoom,
+                };
+            });
+        }
         useIsochrone({
             request: {
                 minutes: config.minutes,
@@ -78,7 +87,6 @@
             name: target.name,
             lng: target.coords[0],
             lat: target.coords[1],
-            jump,
         });
     }
 </script>

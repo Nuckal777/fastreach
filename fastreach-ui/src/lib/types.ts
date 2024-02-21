@@ -12,7 +12,6 @@ interface IsochroneCall {
     name: string,
     lat: number,
     lng: number,
-    jump: boolean,
 }
 
 interface IsochroneRequest {

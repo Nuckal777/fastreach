@@ -11,14 +11,8 @@
 
     let infoOpen = true;
     let isochrones: IsochroneCall[] = [];
-    let lat = 50.97;
-    let lng = 11.035;
 
     function addIsochrone(iso: IsochroneCall) {
-        if (iso.jump) {
-            lat = iso.lat;
-            lng = iso.lng;
-        }
         isochrones = [...isochrones, iso];
     }
 
@@ -66,11 +60,7 @@
     </div>
 </main>
 <div class="map">
-    <Map
-        geometries={isochrones.map((val) => val.response.geometry)}
-        bind:lat
-        bind:lng
-    />
+    <Map geometries={isochrones.map((val) => val.response.geometry)} />
 </div>
 
 <style>
