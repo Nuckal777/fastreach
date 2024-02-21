@@ -9,13 +9,15 @@
     $: text = open ? "-" : "+";
 </script>
 
-<button
-    class="small-btn"
-    class:no-border={!open}
-    class:border={open}
-    class:float-right={right}
-    on:click={toggle}>{text}</button
->
-<div class:hidden={!open}>
+<div>
+    <button
+        class="small-btn"
+        class:no-border={!open}
+        class:border={open}
+        class:float-right={right}
+        on:click={toggle}>{text}</button
+    >
+</div>
+<div class:hidden={!open} style="overflow: auto; width: 100%;">
     <slot />
 </div>

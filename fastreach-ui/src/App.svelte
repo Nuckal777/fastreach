@@ -98,6 +98,7 @@
         border-radius: 5px;
         margin: 10px;
         padding: 5px;
+        min-width: calc(1em + 8px);
         width: fit-content;
         height: fit-content;
         border: 2px solid rgba(0, 0, 0, 0.2);
