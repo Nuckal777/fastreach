@@ -1,11 +1,5 @@
 import { writable } from "svelte/store";
-import type { NodeResponseState } from "./types";
-
-interface MapLocation {
-    lat: number,
-    lng: number,
-    zoom: number,
-}
+import type { MapLocation, NodeResponseState } from "./types";
 
 export const nodes = writable<NodeResponseState>({
     error: "",

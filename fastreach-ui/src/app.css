@@ -30,3 +30,9 @@ body,
 .float-right {
     float: right;
 }
+
+@media (width <= 768px) {
+    .float-right {
+        float: left;
+    }
+}

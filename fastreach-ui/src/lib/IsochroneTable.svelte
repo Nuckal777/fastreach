@@ -25,6 +25,13 @@
 </table>
 
 <style>
+    table {
+        height: fit-content;
+        max-height: 100%;
+        width: fit-content;
+        max-width: 100%;
+    }
+
     th {
         background-color: #0078e7;
         color: white;

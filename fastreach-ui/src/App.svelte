@@ -1,5 +1,6 @@
 <script lang="ts">
     import "purecss/build/pure-min.css";
+    import "purecss/build/grids-responsive-min.css";
     import { onMount } from "svelte";
     import IsochroneConfig from "./lib/IsochroneConfig.svelte";
     import IsochroneTable from "./lib/IsochroneTable.svelte";
@@ -8,6 +9,7 @@
     import { nodes } from "./lib/store";
     import type { IsochroneCall, NodeResponse } from "./lib/types";
     import Info from "./lib/Info.svelte";
+    import Zoom from "./lib/Zoom.svelte";
 
     let infoOpen = true;
     let isochrones: IsochroneCall[] = [];
@@ -36,26 +38,40 @@
     onMount(fetchNodes);
 </script>
 
-<main class="main">
+<main>
     {#if infoOpen}
         <Info onClose={() => (infoOpen = false)}></Info>
     {/if}
-    <div class="overlay wrapper">
-        <div class="map-overlay">
-            <Toggle>
-                <h2>Fastreach</h2>
-                <button
-                    class="small-btn border float-right"
-                    on:click={() => (infoOpen = true)}>i</button
-                >
-                <IsochroneConfig useIsochrone={addIsochrone} />
-            </Toggle>
-        </div>
-        <div class="map-overlay">
-            <Toggle right>
-                <h2>Isochrones</h2>
-                <IsochroneTable {isochrones} onRemove={removeIsochrone} />
-            </Toggle>
+    <div class="overlay">
+        <div class="wrapper pure-g">
+            <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-1-3">
+                <div class="map-overlay">
+                    <Toggle>
+                        <h2>Fastreach</h2>
+                        <button
+                            class="small-btn border float-right"
+                            on:click={() => (infoOpen = true)}>i</button
+                        >
+                        <IsochroneConfig useIsochrone={addIsochrone} />
+                    </Toggle>
+                </div>
+            </div>
+            <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-2-3">
+                <div class="map-overlay float-right">
+                    <Toggle right>
+                        <h2>Isochrones</h2>
+                        <IsochroneTable
+                            {isochrones}
+                            onRemove={removeIsochrone}
+                        />
+                    </Toggle>
+                </div>
+            </div>
+            <div class="pure-u-1 pure-u-md-1-2">
+                <div class="map-overlay">
+                    <Zoom></Zoom>
+                </div>
+            </div>
         </div>
     </div>
 </main>
@@ -64,7 +80,7 @@
 </div>
 
 <style>
-    .main {
+    main {
         position: absolute;
         pointer-events: none;
         left: 0px;
@@ -79,7 +95,7 @@
         left: 0px;
         right: 0px;
         pointer-events: none;
-        z-index: 1;
+        height: 100%;
     }
 
     .map-overlay {
@@ -90,11 +106,23 @@
         padding: 5px;
         min-width: calc(1em + 8px);
         width: fit-content;
-        height: fit-content;
+        max-width: calc(100% - 34px);
         border: 2px solid rgba(0, 0, 0, 0.2);
         pointer-events: auto;
-        max-height: calc(80vh - 105px);
+        max-height: 70vh;
         overflow: auto;
+    }
+
+    @media (width <= 768px) {
+        .map-overlay {
+            max-height: 38vh;
+        }
+    }
+
+    @media (height <= 512px) and (width > 768px) {
+        .map-overlay {
+            max-height: 60vh;
+        }
     }
 
     .map {
@@ -107,7 +135,10 @@
     }
 
     .wrapper {
-        display: flex;
+        flex-direction: row;
         justify-content: space-between;
+        align-content: space-between;
+        height: 100%;
+        width: 100%;
     }
 </style>

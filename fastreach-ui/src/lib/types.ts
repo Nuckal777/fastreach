@@ -1,17 +1,17 @@
 import type { GeoJsonObject } from "geojson";
 
 interface IsochroneConfiguration {
-    nodes: Node[],
-    start: Date,
-    minutes: number,
+    nodes: Node[];
+    start: Date;
+    minutes: number;
 }
 
 interface IsochroneCall {
     request: IsochroneRequest;
     response: IsochroneResponse;
-    name: string,
-    lat: number,
-    lng: number,
+    name: string;
+    lat: number;
+    lng: number;
 }
 
 interface IsochroneRequest {
@@ -28,17 +28,23 @@ interface IsochroneResponse {
 
 type IsochroneCallHandler = (res: IsochroneCall) => void;
 
+interface MapLocation {
+    lat: number;
+    lng: number;
+    zoom: number;
+}
+
 interface Node {
-    name: string,
-    coords: number[],
-    id: string,
+    name: string;
+    coords: number[];
+    id: string;
 }
 
 type NodeResponse = Node[];
 
 interface NodeResponseState {
-    response: NodeResponse
-    error: string,
+    response: NodeResponse;
+    error: string;
 }
 
 export type {
@@ -47,6 +53,7 @@ export type {
     IsochroneRequest,
     IsochroneResponse,
     IsochroneCallHandler,
+    MapLocation,
     Node,
     NodeResponse,
     NodeResponseState,
