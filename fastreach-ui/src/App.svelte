@@ -42,42 +42,44 @@
     {#if infoOpen}
         <Info onClose={() => (infoOpen = false)}></Info>
     {/if}
-    <div class="overlay">
-        <div class="wrapper pure-g">
-            <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-1-3">
-                <div class="map-overlay">
-                    <Toggle>
-                        <h2>Fastreach</h2>
-                        <button
-                            class="small-btn border float-right"
-                            on:click={() => (infoOpen = true)}>i</button
-                        >
-                        <IsochroneConfig useIsochrone={addIsochrone} />
-                    </Toggle>
+    <div class="overlay pure-g">
+        <div class="pure-u-1">
+            <div class="wrapper pure-g">
+                <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-1-3">
+                    <div class="map-overlay">
+                        <Toggle>
+                            <h2>Fastreach</h2>
+                            <button
+                                class="small-btn border float-right"
+                                on:click={() => (infoOpen = true)}>i</button
+                            >
+                            <IsochroneConfig useIsochrone={addIsochrone} />
+                        </Toggle>
+                    </div>
                 </div>
-            </div>
-            <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-2-3">
-                <div class="map-overlay float-right">
-                    <Toggle right>
-                        <h2>Isochrones</h2>
-                        <IsochroneTable
-                            {isochrones}
-                            onRemove={removeIsochrone}
-                        />
-                    </Toggle>
-                </div>
-            </div>
-            <div class="pure-u-1 pure-u-md-1-2">
-                <div class="map-overlay">
-                    <Zoom></Zoom>
+                <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-2-3">
+                    <div class="map-overlay float-right">
+                        <Toggle right>
+                            <h2>Isochrones</h2>
+                            <IsochroneTable
+                                {isochrones}
+                                onRemove={removeIsochrone}
+                            />
+                        </Toggle>
+                    </div>
                 </div>
             </div>
         </div>
+        <div class="pure-u-1">
+            <div class="map-overlay">
+                <Zoom></Zoom>
+            </div>
+        </div>
+    </div>
+    <div class="map">
+        <Map geometries={isochrones.map((val) => val.response.geometry)} />
     </div>
 </main>
-<div class="map">
-    <Map geometries={isochrones.map((val) => val.response.geometry)} />
-</div>
 
 <style>
     main {
@@ -85,7 +87,6 @@
         pointer-events: none;
         left: 0px;
         right: 0px;
-        z-index: 1;
         height: 100%;
     }
 
@@ -96,6 +97,10 @@
         right: 0px;
         pointer-events: none;
         height: 100%;
+        z-index: 1;
+
+        flex-direction: column;
+        justify-content: space-between;
     }
 
     .map-overlay {
@@ -126,6 +131,7 @@
     }
 
     .map {
+        pointer-events: initial;
         position: absolute;
         left: 0px;
         top: 0px;
@@ -138,7 +144,6 @@
         flex-direction: row;
         justify-content: space-between;
         align-content: space-between;
-        height: 100%;
         width: 100%;
     }
 </style>
