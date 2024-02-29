@@ -101,6 +101,7 @@
 
         flex-direction: column;
         justify-content: space-between;
+        overflow: hidden;
     }
 
     .map-overlay {
@@ -121,6 +122,12 @@
     @media (width <= 768px) {
         .map-overlay {
             max-height: 38vh;
+        }
+    }
+
+    @media (height <= 512px) and (width <= 768px) {
+        .map-overlay {
+            max-height: 30vh;
         }
     }
 
