@@ -18,6 +18,13 @@
         on:click={toggle}>{text}</button
     >
 </div>
-<div class:hidden={!open} style="overflow: auto; width: 100%;">
+<div class:hidden={!open} class="content">
     <slot />
 </div>
+
+<style>
+    .content {
+        overflow: auto;
+        width: 100%;
+    }
+</style>
