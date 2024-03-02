@@ -39,11 +39,11 @@
             attributionControl: false,
         });
         map.addControl(
-            control.attribution({ position: "bottomright", prefix: false })
+            control.attribution({ position: "bottomright", prefix: false }),
         );
         map.setView(
             { lat: $mapLocation.lat, lng: $mapLocation.lng },
-            $mapLocation.zoom
+            $mapLocation.zoom,
         );
         map.on("moveend", () => {
             if (map === null) {
@@ -78,14 +78,14 @@
         }
         map.setView(
             { lat: $mapLocation.lat, lng: $mapLocation.lng },
-            $mapLocation.zoom
+            $mapLocation.zoom,
         );
         const zoom = map.getZoom();
         mapLocation.update((loc) => ({ ...loc, zoom }));
     }
 </script>
 
-<div style="height:100%; width:100%;" use:initialize>
+<div class="fill" use:initialize>
     {#if map}
         <slot />
     {/if}

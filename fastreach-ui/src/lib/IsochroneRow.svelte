@@ -19,7 +19,7 @@
     <td>{isochroneCall.response.diameter.toFixed(3)} km</td>
     <td>
         <button
-            class="small-btn border float-right remove"
+            class="small-btn border remove"
             on:click={() => onRemove(index)}
         >
         x

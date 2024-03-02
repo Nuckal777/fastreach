@@ -9,12 +9,11 @@
     $: text = open ? "-" : "+";
 </script>
 
-<div>
+<div class="toggle-container" class:end={right}>
     <button
         class="small-btn"
         class:no-border={!open}
         class:border={open}
-        class:float-right={right}
         on:click={toggle}>{text}</button
     >
 </div>
@@ -23,8 +22,23 @@
 </div>
 
 <style>
+    .toggle-container {
+        display: flex;
+        padding: 5px;
+    }
+
+    .end {
+        justify-content: end;
+    }
+
+    @media (width <= 768px) {
+        .end {
+            justify-content: start;
+        }
+    }
+
     .content {
         overflow: auto;
-        width: 100%;
+        padding: 5px;
     }
 </style>

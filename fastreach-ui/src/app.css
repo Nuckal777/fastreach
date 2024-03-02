@@ -27,12 +27,7 @@ body,
     border: 2px;
 }
 
-.float-right {
-    float: right;
-}
-
-@media (width <= 768px) {
-    .float-right {
-        float: left;
-    }
+.fill {
+    height: 100%;
+    width: 100%;
 }

@@ -2,10 +2,10 @@
     export let onClose: () => void = () => {};
 </script>
 
-<div class="info-back" on:click={onClose} on:keydown={onClose} role="region">
+<div class="info-back fill" on:click={onClose} on:keydown={onClose} role="region">
     <div class="info-overlay" on:click|stopPropagation={() => {}} role="dialog">
         <button
-            class="small-btn border float-right"
+            class="small-btn border"
             on:click={onClose}
             aria-label="close">x</button
         >
@@ -17,8 +17,6 @@
     .info-back {
         position: relative;
         z-index: 2;
-        width: 100%;
-        height: 100%;
         pointer-events: initial;
         background-color: rgba(0, 0, 0, 0.4);
     }

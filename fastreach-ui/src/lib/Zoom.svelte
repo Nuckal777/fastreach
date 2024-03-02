@@ -10,13 +10,17 @@
     }
 </script>
 
-<div>
+<div class="zoom-container">
     <button class="zoom-btn" on:click={() => zoom(1)}>+</button>
     <hr />
     <button class="zoom-btn" on:click={() => zoom(-1)}>−</button>
 </div>
 
 <style>
+    .zoom-container {
+        padding: 5px;
+    }
+
     .zoom-btn {
         width: 30px;
         height: 30px;

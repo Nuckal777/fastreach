@@ -1,6 +1,5 @@
 <script lang="ts">
     import "purecss/build/pure-min.css";
-    import "purecss/build/grids-responsive-min.css";
     import { onMount } from "svelte";
     import IsochroneConfig from "./lib/IsochroneConfig.svelte";
     import IsochroneTable from "./lib/IsochroneTable.svelte";
@@ -42,41 +41,39 @@
     {#if infoOpen}
         <Info onClose={() => (infoOpen = false)}></Info>
     {/if}
-    <div class="overlay pure-g">
-        <div style="width: 100%; height: 80%;">
-            <div class="wrapper pure-g">
-                <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-1-3">
-                    <div class="map-overlay">
-                        <Toggle>
-                            <h2>Fastreach</h2>
-                            <button
-                                class="small-btn border float-right"
-                                on:click={() => (infoOpen = true)}>i</button
-                            >
-                            <IsochroneConfig useIsochrone={addIsochrone} />
-                        </Toggle>
-                    </div>
+    <div class="overlay">
+        <div class="config-container">
+            <div class="config-item">
+                <div class="map-overlay border">
+                    <Toggle>
+                        <h2>Fastreach</h2>
+                        <button
+                            class="small-btn border"
+                            on:click={() => (infoOpen = true)}>i</button
+                        >
+                        <IsochroneConfig useIsochrone={addIsochrone} />
+                    </Toggle>
                 </div>
-                <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-2-3">
-                    <div class="map-overlay float-right">
-                        <Toggle right>
-                            <h2>Isochrones</h2>
-                            <IsochroneTable
-                                {isochrones}
-                                onRemove={removeIsochrone}
-                            />
-                        </Toggle>
-                    </div>
+            </div>
+            <div class="config-item flex-container justify-end">
+                <div class="map-overlay border">
+                    <Toggle right>
+                        <h2>Isochrones</h2>
+                        <IsochroneTable
+                            {isochrones}
+                            onRemove={removeIsochrone}
+                        />
+                    </Toggle>
                 </div>
             </div>
         </div>
-        <div style="height: 20%">
-            <div class="map-overlay" style="position: absolute; bottom: 0;">
+        <div style="height: fit-content;">
+            <div class="map-overlay border">
                 <Zoom></Zoom>
             </div>
         </div>
     </div>
-    <div class="map">
+    <div class="map fill">
         <Map geometries={isochrones.map((val) => val.response.geometry)} />
     </div>
 </main>
@@ -99,42 +96,25 @@
         height: 100%;
         z-index: 1;
 
+        display: flex;
         flex-direction: column;
         justify-content: space-between;
         overflow: hidden;
+        row-gap: 10px;
     }
 
     .map-overlay {
+        min-height: 0;
         background-color: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(3px);
-        border-radius: 5px;
         margin: 10px;
-        padding: 5px;
         min-width: calc(1em + 8px);
         width: fit-content;
+        height: fit-content;
         max-width: calc(100% - 34px);
-        border: 2px solid rgba(0, 0, 0, 0.2);
         pointer-events: auto;
-        max-height: 70vh;
+        max-height: 100%;
         overflow: auto;
-    }
-
-    @media (width <= 768px) {
-        .map-overlay {
-            max-height: 38vh;
-        }
-    }
-
-    @media (height <= 512px) and (width <= 768px) {
-        .map-overlay {
-            max-height: 30vh;
-        }
-    }
-
-    @media (height <= 512px) and (width > 768px) {
-        .map-overlay {
-            max-height: 60vh;
-        }
     }
 
     .map {
@@ -143,14 +123,47 @@
         left: 0px;
         top: 0px;
         z-index: 0;
-        height: 100%;
-        width: 100%;
     }
 
-    .wrapper {
+    .config-container {
+        display: flex;
         flex-direction: row;
         justify-content: space-between;
-        align-content: space-between;
         width: 100%;
+
+        min-height: 0;
+        flex-basis: content;
+    }
+
+    .config-item {
+        flex-basis: auto;
+        width: 50%;
+        height: 100%;
+    }
+
+    .flex-container {
+        display: flex;
+    }
+
+    .justify-end {
+        justify-content: end;
+    }
+
+    @media (width <= 768px) {
+        .config-container {
+            flex-direction: column;
+            justify-content: start;
+            row-gap: 10px;
+        }
+
+        .config-item {
+            width: 100%;
+            flex-basis: content;
+            min-height: 2.5em;
+        }
+
+        .justify-end {
+            justify-content: start;
+        }
     }
 </style>
