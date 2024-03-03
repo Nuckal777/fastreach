@@ -45,7 +45,7 @@
         <div class="config-container">
             <div class="config-item">
                 <div class="map-overlay border">
-                    <Toggle>
+                    <Toggle icon="config">
                         <h2>Fastreach</h2>
                         <button
                             class="small-btn border"
@@ -57,7 +57,7 @@
             </div>
             <div class="config-item flex-container justify-end">
                 <div class="map-overlay border">
-                    <Toggle right>
+                    <Toggle right icon="table">
                         <h2>Isochrones</h2>
                         <IsochroneTable
                             {isochrones}

@@ -19,9 +19,10 @@
     "svelte-check": "^3.6.3",
     "tslib": "^2.6.2",
     "typescript": "^5.3.3",
-    "vite": "^4.5.1"
+    "vite": "^4.5.2"
   },
   "dependencies": {
+    "css.gg": "^2.1.1",
     "leaflet": "^1.9.4",
     "purecss": "^3.0.0"
   }
