@@ -3,7 +3,7 @@ use std::str::Utf8Error;
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use fnv::FnvHashMap;
-use geo::{GeoFloat, HaversineDestination, HaversineDistance};
+use geo::{GeoFloat, HaversineDistance};
 use num_traits::FromPrimitive;
 use smallvec::SmallVec;
 
@@ -260,10 +260,6 @@ impl<'a, 'b> TimedNode<'a, 'b> {
         TimedNode { node, duration }
     }
 
-    fn radius(&self) -> f32 {
-        self.duration.num_minutes() as f32 * MOVE_SPEED
-    }
-
     #[must_use]
     pub fn to_points<T: GeoFloat + FromPrimitive>(&self) -> Vec<geo::Coord<T>> {
         let distance = num_traits::cast::<f32, T>(MOVE_SPEED).unwrap()
@@ -284,14 +280,6 @@ impl<'a, 'b> TimedNode<'a, 'b> {
         verts.push(verts[0]);
         let line_string = geo::LineString::new(verts);
         geo::Polygon::new(line_string, vec![])
-    }
-
-    fn to_aabb(&self) -> rstar::AABB<[f32; 2]> {
-        let center = self.node.to_point();
-        let radius = self.radius();
-        let upper: [f32; 2] = center.haversine_destination(45.0, radius).into();
-        let lower: [f32; 2] = center.haversine_destination(225.0, radius).into();
-        rstar::AABB::from_corners(upper, lower)
     }
 }
 
