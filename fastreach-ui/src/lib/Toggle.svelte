@@ -1,6 +1,6 @@
 <script lang="ts">
-    import "css.gg/icons/css/list.css";
-    import "css.gg/icons/css/search.css";
+    import list from "css.gg/icons/svg/list.svg";
+    import search from "css.gg/icons/svg/search.svg";
 
     type Icon = "config" | "table" | "none";
 
@@ -16,14 +16,33 @@
 </script>
 
 <div class="toggle-container" class:end={right} class:toggle-center={!open}>
-    <button
-        class="small-btn"
-        class:no-border={!open}
-        class:border={open}
-        class:gg-search={!open && icon === "config"}
-        class:gg-list={!open && icon === "table"}
-        on:click={toggle}>{text}</button
-    >
+    {#if open}
+        <input
+            type="button"
+            class="small-btn border"
+            on:click={toggle}
+            value={text}
+        />
+    {:else}
+        {#if icon === "config"}
+            <input
+                type="image"
+                class="no-border"
+                src={search}
+                alt="isochrone configuration"
+                on:click={toggle}
+            />
+        {/if}
+        {#if icon === "table"}
+            <input
+                type="image"
+                class="no-border"
+                src={list}
+                alt="isochrone data"
+                on:click={toggle}
+            />
+        {/if}
+    {/if}
 </div>
 <div class:hidden={!open} class="content">
     <slot />
@@ -35,11 +54,6 @@
         padding: 5px;
         min-width: 22px;
         min-height: 22px;
-    }
-
-    .gg-search {
-        position: absolute;
-        top: 10px;
     }
 
     .toggle-center {

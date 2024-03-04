@@ -11,9 +11,9 @@
 </script>
 
 <div class="zoom-container">
-    <button class="zoom-btn" on:click={() => zoom(1)}>+</button>
+    <input type="button" class="zoom-btn" on:click={() => zoom(1)} value="+" />
     <hr />
-    <button class="zoom-btn" on:click={() => zoom(-1)}>−</button>
+    <input type="button" class="zoom-btn" on:click={() => zoom(-1)} value="−" />
 </div>
 
 <style>
@@ -22,6 +22,7 @@
     }
 
     .zoom-btn {
+        cursor: pointer;
         width: 30px;
         height: 30px;
         line-height: 30px;

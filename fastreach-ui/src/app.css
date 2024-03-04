@@ -12,6 +12,7 @@ body,
     background-color: transparent;
     text-align: center;
     font-size: initial;
+    cursor: pointer;
 }
 
 .small-btn:hover {

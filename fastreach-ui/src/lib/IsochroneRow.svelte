@@ -18,12 +18,12 @@
     <td>{isochroneCall.response.area.toFixed(3)} km²</td>
     <td>{isochroneCall.response.diameter.toFixed(3)} km</td>
     <td>
-        <button
+        <input
+            type="button"
             class="small-btn border remove"
             on:click={() => onRemove(index)}
-        >
-        x
-        </button>
+            value="x"
+        />
     </td>
 </tr>
 

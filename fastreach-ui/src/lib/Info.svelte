@@ -2,13 +2,20 @@
     export let onClose: () => void = () => {};
 </script>
 
-<div class="info-back fill" on:click={onClose} on:keydown={onClose} role="region">
+<div
+    class="info-back fill"
+    on:click={onClose}
+    on:keydown={onClose}
+    role="region"
+>
     <div class="info-overlay" on:click|stopPropagation={() => {}} role="dialog">
-        <button
+        <input
+            type="button"
             class="small-btn border"
             on:click={onClose}
-            aria-label="close">x</button
-        >
+            aria-label="close"
+            value="x"
+        />
         <h2>Welcome to Fastreach</h2>
     </div>
 </div>

@@ -47,10 +47,12 @@
                 <div class="map-overlay border">
                     <Toggle icon="config">
                         <h2>Fastreach</h2>
-                        <button
+                        <input
+                            type="button"
                             class="small-btn border"
-                            on:click={() => (infoOpen = true)}>i</button
-                        >
+                            on:click={() => (infoOpen = true)}
+                            value="i"
+                        />
                         <IsochroneConfig useIsochrone={addIsochrone} />
                     </Toggle>
                 </div>
