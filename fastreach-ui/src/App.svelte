@@ -151,7 +151,7 @@
         justify-content: end;
     }
 
-    @media (width <= 768px) {
+    @media (width <= 640px) {
         .config-container {
             flex-direction: column;
             justify-content: start;

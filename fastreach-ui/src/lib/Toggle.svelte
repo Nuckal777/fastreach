@@ -65,7 +65,7 @@
         justify-content: end;
     }
 
-    @media (width <= 768px) {
+    @media (width <= 640px) {
         .end {
             justify-content: start;
         }
