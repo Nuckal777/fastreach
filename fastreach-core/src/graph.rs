@@ -211,6 +211,7 @@ impl<'a> Graph<'a> {
     /// Parses the given slice into the graph.
     /// # Errors
     /// When file is too small.
+    #[allow(clippy::cast_sign_loss, clippy::cast_lossless)]
     pub fn from_slice(data: &[u8]) -> Result<Graph, Error> {
         let mut reader = std::io::Cursor::new(data);
         let node_count = reader.read_u32::<LE>()?;
@@ -260,6 +261,9 @@ impl<'a, 'b> TimedNode<'a, 'b> {
         TimedNode { node, duration }
     }
 
+    /// Converts a `TimedNode` into a circle approximation.
+    /// # Panics
+    /// If T cannot be cast to f32,
     #[must_use]
     pub fn to_points<T: GeoFloat + FromPrimitive>(&self) -> Vec<geo::Coord<T>> {
         let distance = num_traits::cast::<f32, T>(MOVE_SPEED).unwrap()
@@ -293,7 +297,7 @@ impl<'a, 'b> Eq for TimedNode<'a, 'b> {}
 
 impl<'a, 'b> PartialOrd for TimedNode<'a, 'b> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.duration.partial_cmp(&other.duration)
+        Some(self.cmp(other))
     }
 }
 
@@ -325,12 +329,14 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         }
     }
 
+    #[allow(clippy::cast_lossless)]
     fn u16_to_time(number: u16) -> NaiveTime {
         let minute = number % 60;
         let hour = number / 60;
         NaiveTime::from_hms_opt(hour as u32, minute as u32, 0).unwrap()
     }
 
+    #[allow(clippy::cast_possible_wrap)]
     fn u32_to_date(number: u32) -> NaiveDate {
         let day = number % 100;
         let month = (number % 10000) / 100;
@@ -375,6 +381,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         Ok(result)
     }
 
+    #[allow(clippy::cast_lossless)]
     fn get_walk(edge: &Edge<'b>) -> Option<chrono::Duration> {
         let walk = edge.walk();
         if walk == u16::MAX {
@@ -405,6 +412,10 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         Ok(Some(pre_midnight + post_midnight))
     }
 
+    /// Computes reachable nodes.
+    /// # Errors
+    /// If underlying data is invalid.
+    #[allow(clippy::cast_precision_loss)]
     pub fn nodes_within(
         &mut self,
         node_idx: usize,

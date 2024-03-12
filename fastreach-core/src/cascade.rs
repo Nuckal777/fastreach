@@ -10,6 +10,9 @@ use crate::graph::TimedNode;
 
 const SCALE_FACTOR: f32 = 2000.0;
 
+/// Unifies the given polygons.
+/// # Panics
+/// If any polygon is empty.
 #[must_use]
 pub fn union_polys<T: GeoFloat>(polys: Vec<Polygon<T>>) -> MultiPolygon<T> {
     let tree = RTree::<Polygon<T>>::bulk_load(polys);
@@ -56,6 +59,9 @@ pub fn union_polys<T: GeoFloat>(polys: Vec<Polygon<T>>) -> MultiPolygon<T> {
     )
 }
 
+/// Unifies the timed nodes.
+/// # Panics
+/// If any `TimedNode` produces an empty polygon.
 #[must_use]
 pub fn union(tree: &RTree<&TimedNode<'_, '_>>) -> MultiPolygon<f32> {
     bottom_up_fold_reduce(
