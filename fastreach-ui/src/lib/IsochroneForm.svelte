@@ -79,7 +79,7 @@
                 id="minutes"
                 min={minMinutes}
                 max={maxMinutes}
-                step="5"
+                step="1"
                 bind:value={minutes}
             />
         </div>
