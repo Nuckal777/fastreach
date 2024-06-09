@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 chrono = { version = "0.4" }
 fastreach-core = { path = "../fastreach-core" }
-geo = "0.27"
+geo = "0.28"
 geojson = "0.24"
 lazy_static = "1.4"
 memmap2 = "0.9"
