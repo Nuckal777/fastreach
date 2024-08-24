@@ -1,21 +1,29 @@
-version: "3.3"
+version: "3.6"
 services:
-  ui:
-    build:
-      context: .
-      dockerfile: ui.Dockerfile
-    ports:
-    # Host:Container
-    - "443:443"
-    volumes:
-    - ./Caddyfile:/etc/caddy/Caddyfile
-    - ./fastreach-ui/nodes-v1.json:/usr/share/caddy/nodes-v1.json
-    - ./fastreach-ui/nodes-v1.json.br:/usr/share/caddy/nodes-v1.json.br
-    restart: on-failure
   server:
     build:
       context: .
-      dockerfile: api.Dockerfile
+    read_only: true
+    labels:
+    - traefik.enable=true
+
+    - traefik.http.middlewares.fr-compression.compress=true
+    - traefik.http.middlewares.fr-ratelimit.ratelimit.period=1m
+    - traefik.http.middlewares.fr-ratelimit.ratelimit.average=10
+    - traefik.http.middlewares.fr-ratelimit.ratelimit.burst=20
+
+    - traefik.http.routers.static.rule=Host(`${HOSTNAME}`)
+    - traefik.http.routers.static.tls=true
+    - traefik.http.routers.static.middlewares=fr-compression
+
+    - traefik.http.routers.api.rule=Host(`${HOSTNAME}`) && PathPrefix(`/api`)
+    - traefik.http.routers.api.tls=true
+    - traefik.http.routers.api.middlewares=fr-ratelimit
     volumes:
+    - ./fastreach-ui/nodes-v1.json:/usr/share/fastreach/nodes-v1.json
+    - ./fastreach-ui/nodes-v1.json.br:/usr/share/fastreach/nodes-v1.json.br
     - ./graph.bin:/data/graph.bin
-    restart: on-failure
+    environment:
+    - TOKIO_WORKER_THREADS=3
+    - FASTREACH_PARALLEL=2
+    restart: unless-stopped
