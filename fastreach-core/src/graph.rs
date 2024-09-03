@@ -422,9 +422,9 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         start: NaiveDateTime,
         duration: chrono::Duration,
     ) -> Result<Vec<TimedNode<'a, 'b>>, Error> {
-        let mut result: Vec<TimedNode<'a, 'b>> = Vec::new();
+        let mut result: FnvHashMap<u32, TimedNode<'a, 'b>> = FnvHashMap::default();
         let node = &self.graph.nodes[node_idx];
-        result.push(TimedNode::new(node, duration));
+        result.insert(node_idx.try_into()?, TimedNode::new(node, duration));
         let mut arrivals = FnvHashMap::<u32, NaiveDateTime>::default();
         arrivals.insert(node_idx.try_into()?, start);
         let mut heap = rudac::heap::FibonacciHeap::<TimedNode<'a, 'b>>::init_min();
@@ -455,15 +455,16 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
                         .haversine_distance(&out_node.to_point());
                     let current_radius =
                         MOVE_SPEED * (duration - current.duration).num_minutes() as f32;
-                    let out_radius = MOVE_SPEED * (duration - total_duration).num_minutes() as f32;
+                    let out_remaining = duration - total_duration; 
+                    let out_radius = MOVE_SPEED * (out_remaining).num_minutes() as f32;
                     if distance + out_radius > current_radius {
-                        result.push(TimedNode::new(out_node, duration - total_duration));
+                        result.insert(out.end(), TimedNode::new(out_node, out_remaining));
                     }
                     arrivals.insert(out.end(), arrival);
                     heap.push(TimedNode::new(out_node, total_duration));
                 }
             }
         }
-        Ok(result)
+        Ok(result.into_values().collect())
     }
 }
