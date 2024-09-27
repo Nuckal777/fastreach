@@ -3,7 +3,7 @@ COPY . /app
 WORKDIR /app/fastreach-ui
 RUN npm install && npm run build
 
-FROM rust:1.80-bookworm as build
+FROM rust:1.81-bookworm as build
 WORKDIR /app
 COPY . /app
 ENV RUSTFLAGS="-C target-cpu=native"
