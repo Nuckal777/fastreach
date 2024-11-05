@@ -41,7 +41,7 @@ impl<'a> Node<'a> {
     /// # Errors
     /// When name is not utf-8 encoded.
     pub fn name(&self) -> Result<&str, Utf8Error> {
-        std::str::from_utf8(&self.data[20..])
+        std::str::from_utf8(&self.data[18..])
     }
 }
 
@@ -77,32 +77,32 @@ impl<'a> Edge<'a> {
     #[must_use]
     pub fn walk(&self) -> u16 {
         unsafe {
-            // can only error when len of slice is not 4 which panics beforehand
+            // can only error when len of slice is not 2 which panics beforehand
             u16::from_le_bytes(self.data[8..10].try_into().unwrap_unchecked())
         }
     }
 
     pub fn journeys(&self) -> impl Iterator<Item = Journey<'a>> {
-        let journey_bytes = unsafe {
-            // can only error when len of slice is not 4 which panics beforehand
-            u32::from_le_bytes(self.data[10..14].try_into().unwrap_unchecked())
+        let journey_count = unsafe {
+            // can only error when len of slice is not 2 which panics beforehand
+            u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
         } as usize;
-        let journeys = &self.data[14..14 + journey_bytes];
+        let journeys = &self.data[12..12 + (journey_count * 6)];
         journeys.chunks_exact(6).map(|c| Journey { data: c })
     }
 
     #[must_use]
     pub fn operating_periods(&self) -> OperatingPeriodIter<'a> {
-        let journey_bytes = unsafe {
-            // can only error when len of slice is not 4 which panics beforehand
-            u32::from_le_bytes(self.data[10..14].try_into().unwrap_unchecked())
+        let journey_count = unsafe {
+            // can only error when len of slice is not 2 which panics beforehand
+            u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
         } as usize;
-        let mut offset = 14 + journey_bytes;
+        let mut offset = 12 + (journey_count * 6);
         let period_bytes = unsafe {
-            // can only error when len of slice is not 4 which panics beforehand
-            u32::from_le_bytes(self.data[offset..offset + 4].try_into().unwrap_unchecked())
+            // can only error when len of slice is not 2 which panics beforehand
+            u16::from_le_bytes(self.data[offset..offset + 2].try_into().unwrap_unchecked())
         } as usize;
-        offset += 4;
+        offset += 2;
         OperatingPeriodIter {
             data: &self.data[offset..offset + period_bytes],
             offset: 0,
@@ -146,28 +146,25 @@ pub struct OperatingPeriod<'a> {
 
 impl<'a> OperatingPeriod<'a> {
     #[must_use]
-    pub fn start(&self) -> u32 {
+    pub fn start(&self) -> u16 {
         unsafe {
-            // can only error when len of slice is not 4 which panics beforehand
-            u32::from_le_bytes(self.data[..4].try_into().unwrap_unchecked())
+            // can only error when len of slice is not 2 which panics beforehand
+            u16::from_le_bytes(self.data[..2].try_into().unwrap_unchecked())
         }
     }
 
     #[must_use]
-    pub fn end(&self) -> u32 {
+    pub fn end(&self) -> u16 {
         unsafe {
-            // can only error when len of slice is not 4 which panics beforehand
-            u32::from_le_bytes(self.data[4..8].try_into().unwrap_unchecked())
+            // can only error when len of slice is not 2 which panics beforehand
+            u16::from_le_bytes(self.data[2..4].try_into().unwrap_unchecked())
         }
     }
 
     #[must_use]
     pub fn valid_days(&self) -> &[u8] {
-        let len = unsafe {
-            // can only error when len of slice is not 4 which panics beforehand
-            u32::from_le_bytes(self.data[8..12].try_into().unwrap_unchecked())
-        } as usize;
-        &self.data[12..12 + len]
+        let len = self.data[4] as usize;
+        &self.data[5..5 + len]
     }
 }
 
@@ -184,16 +181,9 @@ impl<'a> Iterator for OperatingPeriodIter<'a> {
         if start >= self.data.len() {
             return None;
         }
-        self.offset += 8;
-        let valid_days_len = unsafe {
-            // can only error when len of slice is not 4 which panics beforehand
-            u32::from_le_bytes(
-                self.data[self.offset..self.offset + 4]
-                    .try_into()
-                    .unwrap_unchecked(),
-            )
-        };
-        self.offset += 4 + valid_days_len as usize;
+        self.offset += 4;
+        let valid_days_len = self.data[self.offset];
+        self.offset += 1 + valid_days_len as usize;
         Some(OperatingPeriod {
             data: &self.data[start..self.offset],
         })
@@ -223,7 +213,7 @@ impl<'a> Graph<'a> {
             ids.insert(id, i as usize);
             // 2 * 4 bytes lat and lon
             reader.set_position(reader.position() + 8);
-            let name_len = reader.read_u32::<LE>()? as u64;
+            let name_len = reader.read_u16::<LE>()? as u64;
             reader.set_position(reader.position() + name_len);
             let end: usize = reader.position().try_into()?;
             nodes.push(Node {
@@ -237,9 +227,9 @@ impl<'a> Graph<'a> {
             let start = reader.read_u32::<LE>()?;
             // end + walk_seconds 6 bytes
             reader.set_position(reader.position() + 6);
-            let journeys_bytes = reader.read_u32::<LE>()?;
-            reader.set_position(reader.position() + journeys_bytes as u64);
-            let periods_bytes = reader.read_u32::<LE>()?;
+            let journeys_count = reader.read_u16::<LE>()?;
+            reader.set_position(reader.position() + (6 * journeys_count as u64));
+            let periods_bytes = reader.read_u16::<LE>()?;
             reader.set_position(reader.position() + periods_bytes as u64);
             let end = reader.position().try_into()?;
             nodes[start as usize].outgoing.push(Edge {
@@ -336,17 +326,16 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         NaiveTime::from_hms_opt(hour as u32, minute as u32, 0).unwrap()
     }
 
-    #[allow(clippy::cast_possible_wrap)]
-    fn u32_to_date(number: u32) -> NaiveDate {
-        let day = number % 100;
-        let month = (number % 10000) / 100;
-        let year = (number / 10000) + 2000;
-        NaiveDate::from_ymd_opt(year as i32, month, day).unwrap()
+    fn u16_to_date(number: u16) -> NaiveDate {
+        let year = number & 0b_0000_0000_0111_1111;
+        let month = (number >> 7) & 0b_0000_0000_0000_1111;
+        let day = (number >> 11) & 0b_0000_0000_0001_1111;
+        NaiveDate::from_ymd_opt(year as i32 + 2000, month.into(), day.into()).unwrap()
     }
 
     fn valid_on(period: &OperatingPeriod<'b>, date: NaiveDate) -> Result<bool, Error> {
-        let start = Self::u32_to_date(period.start());
-        let end = Self::u32_to_date(period.end());
+        let start = Self::u16_to_date(period.start());
+        let end = Self::u16_to_date(period.end());
         if date < start || date > end {
             return Ok(false);
         }
@@ -455,7 +444,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
                         .haversine_distance(&out_node.to_point());
                     let current_radius =
                         MOVE_SPEED * (duration - current.duration).num_minutes() as f32;
-                    let out_remaining = duration - total_duration; 
+                    let out_remaining = duration - total_duration;
                     let out_radius = MOVE_SPEED * (out_remaining).num_minutes() as f32;
                     if distance + out_radius > current_radius {
                         result.insert(out.end(), TimedNode::new(out_node, out_remaining));
