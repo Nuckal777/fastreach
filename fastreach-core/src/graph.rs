@@ -330,7 +330,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         let year = number & 0b_0000_0000_0111_1111;
         let month = (number >> 7) & 0b_0000_0000_0000_1111;
         let day = (number >> 11) & 0b_0000_0000_0001_1111;
-        NaiveDate::from_ymd_opt(year as i32 + 2000, month.into(), day.into()).unwrap()
+        NaiveDate::from_ymd_opt(i32::from(year) + 2000, month.into(), day.into()).unwrap()
     }
 
     fn valid_on(period: &OperatingPeriod<'b>, date: NaiveDate) -> Result<bool, Error> {

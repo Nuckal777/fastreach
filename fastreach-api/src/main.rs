@@ -1,6 +1,6 @@
 use std::{fs::File, sync::Arc};
 
-use chrono::{Duration, NaiveDateTime};
+use chrono::{DateTime, Duration};
 use fastreach_core::{
     cascade,
     graph::{Graph, IsochroneDijsktra},
@@ -66,11 +66,15 @@ impl<'a> IsochroneHandler<'a> {
             .ids
             .get(&id)
             .ok_or(HandlerError::BadRequest("station not found".to_owned()))?;
-        let start_time = NaiveDateTime::from_timestamp_millis(body.start)
+        let start_time = DateTime::from_timestamp_millis(body.start)
             .ok_or(HandlerError::BadRequest("invalid start time".to_owned()))?;
         let mut algo = IsochroneDijsktra::new(&self.graph);
         let reached = algo
-            .nodes_within(*start_idx, start_time, Duration::minutes(body.minutes))
+            .nodes_within(
+                *start_idx,
+                start_time.naive_utc(),
+                Duration::minutes(body.minutes),
+            )
             .map_err(|_| HandlerError::InternalServerError("failed dijsktra".to_owned()))?;
 
         let polys: Vec<Polygon<f32>> = reached.into_iter().map(|n| n.to_poly()).collect();
