@@ -14,6 +14,6 @@ lazy_static = "1.5"
 memmap2 = "0.9"
 serde = "1"
 serde_derive = "1"
-thiserror = "1.0"
+thiserror = "2.0"
 tokio = { version = "1", features = ["macros", "signal", "rt-multi-thread"] }
 warp = { version = "0.3", default-features = false }

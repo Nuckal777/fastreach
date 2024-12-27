@@ -54,7 +54,7 @@ struct IsochroneHandler<'a> {
     max_minutes: i64,
 }
 
-impl<'a> IsochroneHandler<'a> {
+impl IsochroneHandler<'_> {
     fn handle_isochrone(&self, body: &IsochroneBody) -> Result<IsochroneReply, HandlerError> {
         if body.minutes < 0 || body.minutes > self.max_minutes {
             return Err(HandlerError::BadRequest("minutes out of range".to_owned()));

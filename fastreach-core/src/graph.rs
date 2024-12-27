@@ -16,7 +16,7 @@ pub struct Node<'a> {
     pub outgoing: SmallVec<[Edge<'a>; 4]>,
 }
 
-impl<'a> Node<'a> {
+impl Node<'_> {
     #[must_use]
     pub fn lat(&self) -> f32 {
         unsafe {
@@ -45,7 +45,7 @@ impl<'a> Node<'a> {
     }
 }
 
-impl<'a> rstar::RTreeObject for Node<'a> {
+impl rstar::RTreeObject for Node<'_> {
     type Envelope = rstar::AABB<[f32; 2]>;
 
     fn envelope(&self) -> Self::Envelope {
@@ -114,7 +114,7 @@ pub struct Journey<'a> {
     data: &'a [u8],
 }
 
-impl<'a> Journey<'a> {
+impl Journey<'_> {
     #[must_use]
     pub fn arrival(&self) -> u16 {
         unsafe {
@@ -144,7 +144,7 @@ pub struct OperatingPeriod<'a> {
     data: &'a [u8],
 }
 
-impl<'a> OperatingPeriod<'a> {
+impl OperatingPeriod<'_> {
     #[must_use]
     pub fn start(&self) -> u16 {
         unsafe {
@@ -197,7 +197,7 @@ pub struct Graph<'a> {
 
 type Error = Box<dyn std::error::Error>;
 
-impl<'a> Graph<'a> {
+impl Graph<'_> {
     /// Parses the given slice into the graph.
     /// # Errors
     /// When file is too small.
@@ -277,27 +277,27 @@ impl<'a, 'b> TimedNode<'a, 'b> {
     }
 }
 
-impl<'a, 'b> PartialEq for TimedNode<'a, 'b> {
+impl PartialEq for TimedNode<'_, '_> {
     fn eq(&self, other: &Self) -> bool {
         self.duration == other.duration
     }
 }
 
-impl<'a, 'b> Eq for TimedNode<'a, 'b> {}
+impl Eq for TimedNode<'_, '_> {}
 
-impl<'a, 'b> PartialOrd for TimedNode<'a, 'b> {
+impl PartialOrd for TimedNode<'_, '_> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a, 'b> Ord for TimedNode<'a, 'b> {
+impl Ord for TimedNode<'_, '_> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.duration.cmp(&other.duration)
     }
 }
 
-impl<'a, 'b> rstar::RTreeObject for &TimedNode<'a, 'b> {
+impl rstar::RTreeObject for &TimedNode<'_, '_> {
     type Envelope = rstar::AABB<[f32; 2]>;
 
     fn envelope(&self) -> Self::Envelope {
