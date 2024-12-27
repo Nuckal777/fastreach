@@ -1,18 +1,24 @@
 <script lang="ts">
-    export let onClose: () => void = () => {};
+    import { stopPropagation } from 'svelte/legacy';
+
+    interface Props {
+        onClose?: () => void;
+    }
+
+    let { onClose = () => {} }: Props = $props();
 </script>
 
 <div
     class="info-back fill"
-    on:click={onClose}
-    on:keydown={onClose}
+    onclick={onClose}
+    onkeydown={onClose}
     role="region"
 >
-    <div class="info-overlay" on:click|stopPropagation={() => {}} role="dialog">
+    <div class="info-overlay" onclick={stopPropagation(() => {})} role="dialog">
         <input
             type="button"
             class="small-btn border"
-            on:click={onClose}
+            onclick={onClose}
             aria-label="close"
             value="x"
         />

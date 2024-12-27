@@ -1,14 +1,19 @@
 <script lang="ts">
-    export let onBack: () => void = () => {};
+    interface Props {
+        onBack?: () => void;
+        children?: import('svelte').Snippet;
+    }
+
+    let { onBack = () => {}, children }: Props = $props();
 </script>
 
 <input
     class="pure-button font-small"
     type="button"
     value="Back"
-    on:click={() => onBack()}
+    onclick={() => onBack()}
 />
-<slot />
+{@render children?.()}
 
 <style>
     .font-small {

@@ -5,6 +5,7 @@
     import L, { control } from "leaflet";
     import { mapLocation } from "./store";
     import { type MapLocation } from "./types";
+    import { run } from "svelte/legacy";
 
     const isoOpts: L.GeoJSONOptions[] = [
         "#0078e7ff",
@@ -13,10 +14,14 @@
         "#802392ff",
         "#a31621ff",
     ].map((c) => ({ style: { color: c } }));
-    let map: L.Map | null = null;
+    let map: L.Map | null = $state(null);
     let geos: L.GeoJSON[] = [];
-    export let geometries: GeoJsonObject[] = [];
-    $: updateGeoLayer(geometries);
+    interface Props {
+        geometries?: GeoJsonObject[];
+        children?: import('svelte').Snippet;
+    }
+
+    let { geometries = [], children }: Props = $props();
 
     function updateGeoLayer(geometries: GeoJsonObject[]) {
         if (map === null) {
@@ -70,7 +75,6 @@
         }).addTo(map);
         return { destroy: () => map?.remove() };
     }
-    $: updateView($mapLocation);
 
     function updateView(loc: MapLocation) {
         if (map === null) {
@@ -83,10 +87,16 @@
         const zoom = map.getZoom();
         mapLocation.update((loc) => ({ ...loc, zoom }));
     }
+    $effect(() => {
+        updateGeoLayer(geometries);
+    });
+    run(() => {
+        updateView($mapLocation);
+    });
 </script>
 
 <div class="fill" use:initialize>
     {#if map}
-        <slot />
+        {@render children?.()}
     {/if}
 </div>

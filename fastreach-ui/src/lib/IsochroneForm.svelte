@@ -1,25 +1,31 @@
 <script lang="ts">
-    import type { Node, IsochroneConfiguration } from "./types";
 
-    enum FilterState {
-        Empty,
-        Match,
-        Ambiguous,
-    }
+    import { type Node, type IsochroneConfiguration, FilterState } from "./types";
 
     const minMinutes = 5;
     const maxMinutes = 120;
 
-    export let useNodes: (nodes: IsochroneConfiguration) => void;
-    export let station = "";
-    export let minutes = 0;
-    export let start = "";
-    export let jump = true;
 
-    export let nodes: Node[];
+    interface Props {
+        useNodes: (nodes: IsochroneConfiguration) => void;
+        station?: string;
+        minutes?: number;
+        start?: string;
+        jump?: boolean;
+        nodes: Node[];
+    }
+
+    let {
+        useNodes,
+        station = $bindable(""),
+        minutes = $bindable(0),
+        start = $bindable(""),
+        jump = $bindable(true),
+        nodes
+    }: Props = $props();
     let matchingNodes: Node[] = [];
-    let filterState = FilterState.Empty;
-    let filterText: string = "";
+    let filterState = $state(FilterState.Empty);
+    let filterText: string = $state("");
 
     function filterNodes(name: string) {
         matchingNodes = nodes.filter((node) =>
@@ -53,7 +59,9 @@
 
     const minutesExceeded = (m: number) => m < minMinutes || m > maxMinutes;
 
-    $: filterNodes(station);
+    $effect(() => {
+        filterNodes(station);
+    });
 </script>
 
 <form class="pure-form pure-form-aligned">
@@ -109,7 +117,7 @@
                     : "Calculate isochrone"}
                 disabled={filterState === FilterState.Empty ||
                     minutesExceeded(minutes)}
-                on:click={createConfiguration}
+                onclick={createConfiguration}
             />
         </div>
     </fieldset>

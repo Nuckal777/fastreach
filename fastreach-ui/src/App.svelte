@@ -10,8 +10,8 @@
     import Info from "./lib/Info.svelte";
     import Zoom from "./lib/Zoom.svelte";
 
-    let infoOpen = true;
-    let isochrones: IsochroneCall[] = [];
+    let infoOpen = $state(true);
+    let isochrones: IsochroneCall[] = $state([]);
 
     function addIsochrone(iso: IsochroneCall) {
         isochrones = [...isochrones, iso];
@@ -50,7 +50,7 @@
                         <input
                             type="button"
                             class="small-btn border"
-                            on:click={() => (infoOpen = true)}
+                            onclick={() => (infoOpen = true)}
                             value="i"
                         />
                         <IsochroneConfig useIsochrone={addIsochrone} />

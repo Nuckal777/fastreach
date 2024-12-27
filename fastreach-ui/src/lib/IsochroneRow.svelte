@@ -1,9 +1,13 @@
 <script lang="ts">
     import type { IsochroneCall } from "./types";
 
-    export let isochroneCall: IsochroneCall;
-    export let index: number;
-    export let onRemove: (index: number) => void = () => {};
+    interface Props {
+        isochroneCall: IsochroneCall;
+        index: number;
+        onRemove?: (index: number) => void;
+    }
+
+    let { isochroneCall, index, onRemove = () => {} }: Props = $props();
 </script>
 
 <tr>
@@ -21,7 +25,7 @@
         <input
             type="button"
             class="small-btn border remove"
-            on:click={() => onRemove(index)}
+            onclick={() => onRemove(index)}
             value="x"
         />
     </td>

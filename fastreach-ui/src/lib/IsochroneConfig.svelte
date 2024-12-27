@@ -9,15 +9,19 @@
         IsochroneResponse,
     } from "./types";
 
-    export let useIsochrone: IsochroneCallHandler = () => {};
+    interface Props {
+        useIsochrone?: IsochroneCallHandler;
+    }
 
-    let ambiguousConfig: IsochroneConfiguration | undefined;
-    let error = "";
+    let { useIsochrone = () => {} }: Props = $props();
 
-    let station = "Erfurt Hbf";
-    let minutes = 30;
-    let start = "2023-10-17T10:15:00";
-    let jump = true;
+    let ambiguousConfig: IsochroneConfiguration | undefined = $state();
+    let error = $state("");
+
+    let station = $state("Erfurt Hbf");
+    let minutes = $state(30);
+    let start = $state("2023-10-17T10:15:00");
+    let jump = $state(true);
 
     async function useNodes(config: IsochroneConfiguration) {
         if (config.nodes.length === 0) {

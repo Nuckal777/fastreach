@@ -1,10 +1,16 @@
 <script lang="ts">
     import type { Node, IsochroneConfiguration } from "./types";
 
-    export let config: IsochroneConfiguration;
-    export let useConfiguration: (config: IsochroneConfiguration) => void;
-    let stations: Node[] = [];
-    $: stations = config.nodes;
+    interface Props {
+        config: IsochroneConfiguration;
+        useConfiguration: (config: IsochroneConfiguration) => void;
+    }
+
+    let { config, useConfiguration }: Props = $props();
+    let stations: Node[] = $state([]);
+    $effect(() => {
+        stations = config.nodes;
+    });
 
     function clickStation(node: Node) {
         useConfiguration({
@@ -22,7 +28,7 @@
         type="button"
         value={station.name}
         class="pure-button"
-        on:click={() => clickStation(station)}
+        onclick={() => clickStation(station)}
     />
     <p>
         Lon: {station.coords[0].toFixed(4)} Lat: {station.coords[1].toFixed(4)}

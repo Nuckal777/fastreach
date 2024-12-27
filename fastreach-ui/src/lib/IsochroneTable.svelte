@@ -2,8 +2,12 @@
     import IsochroneRow from "./IsochroneRow.svelte";
     import type { IsochroneCall } from "./types";
 
-    export let isochrones: IsochroneCall[] = [];
-    export let onRemove: (index: number) => void = () => {};
+    interface Props {
+        isochrones?: IsochroneCall[];
+        onRemove?: (index: number) => void;
+    }
+
+    let { isochrones = [], onRemove = () => {} }: Props = $props();
 </script>
 
 <table class="pure-table pure-table-bordered">

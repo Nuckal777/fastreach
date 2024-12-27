@@ -47,14 +47,21 @@ interface NodeResponseState {
     error: string;
 }
 
-export type {
-    IsochroneConfiguration,
-    IsochroneCall,
-    IsochroneRequest,
-    IsochroneResponse,
-    IsochroneCallHandler,
-    MapLocation,
-    Node,
-    NodeResponse,
-    NodeResponseState,
+enum FilterState {
+    Empty,
+    Match,
+    Ambiguous,
+}
+
+export {
+    FilterState,
+    type IsochroneConfiguration,
+    type IsochroneCall,
+    type IsochroneRequest,
+    type IsochroneResponse,
+    type IsochroneCallHandler,
+    type MapLocation,
+    type Node,
+    type NodeResponse,
+    type NodeResponseState,
 };

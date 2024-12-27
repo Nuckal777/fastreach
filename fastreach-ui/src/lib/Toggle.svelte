@@ -4,15 +4,20 @@
 
     type Icon = "config" | "table" | "none";
 
-    export let right = false;
-    export let icon: Icon = "none";
+    interface Props {
+        right?: boolean;
+        icon?: Icon;
+        children?: import('svelte').Snippet;
+    }
+
+    let { right = false, icon = "none", children }: Props = $props();
 
     function toggle() {
         open = !open;
     }
 
-    let open = true;
-    $: text = open ? "-" : icon === "none" ? "+" : "";
+    let open = $state(true);
+    let text = $derived(open ? "-" : icon === "none" ? "+" : "");
 </script>
 
 <div class="toggle-container" class:end={right} class:toggle-center={!open}>
@@ -20,7 +25,7 @@
         <input
             type="button"
             class="small-btn border"
-            on:click={toggle}
+            onclick={toggle}
             value={text}
         />
     {:else}
@@ -30,7 +35,7 @@
                 class="no-border"
                 src={search}
                 alt="isochrone configuration"
-                on:click={toggle}
+                onclick={toggle}
             />
         {/if}
         {#if icon === "table"}
@@ -39,13 +44,13 @@
                 class="no-border"
                 src={list}
                 alt="isochrone data"
-                on:click={toggle}
+                onclick={toggle}
             />
         {/if}
     {/if}
 </div>
 <div class:hidden={!open} class="content">
-    <slot />
+    {@render children?.()}
 </div>
 
 <style>
