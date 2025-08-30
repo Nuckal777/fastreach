@@ -8,12 +8,11 @@ edition = "2021"
 [dependencies]
 chrono = { version = "0.4" }
 fastreach-core = { path = "../fastreach-core" }
-geo = "0.28"
+geo = "0.30"
 geojson = "0.24"
-lazy_static = "1.5"
 memmap2 = "0.9"
 serde = "1"
 serde_derive = "1"
 thiserror = "2.0"
 tokio = { version = "1", features = ["macros", "signal", "rt-multi-thread"] }
-warp = { version = "0.3", default-features = false }
+warp = { version = "0.4", default-features = false, features = ["server"]}

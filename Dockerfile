@@ -1,9 +1,9 @@
-FROM node:20-alpine as ui-build
+FROM node:20-alpine AS ui-build
 COPY . /app
 WORKDIR /app/fastreach-ui
 RUN npm install && npm run build
 
-FROM rust:1.83-bookworm as build
+FROM rust:1.89-bookworm AS build
 WORKDIR /app
 COPY . /app
 ENV RUSTFLAGS="-C target-cpu=native"

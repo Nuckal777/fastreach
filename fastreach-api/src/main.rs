@@ -1,4 +1,7 @@
-use std::{fs::File, sync::Arc};
+use std::{
+    fs::File,
+    sync::{Arc, LazyLock},
+};
 
 use chrono::{DateTime, Duration};
 use fastreach_core::{
@@ -6,7 +9,6 @@ use fastreach_core::{
     graph::{Graph, IsochroneDijsktra},
 };
 use geo::{ChamberlainDuquetteArea, Polygon};
-use lazy_static::lazy_static;
 use memmap2::Mmap;
 use thiserror::Error;
 use warp::{http::StatusCode, reply, Filter};
@@ -18,13 +20,11 @@ const STATIC_DEFAULT: &str = "static";
 const MAX_MINUTES_DEFAULT: i64 = 120;
 const PARALLEL_DEFAULT: usize = 2;
 
-lazy_static! {
-    static ref GRAPH_DATA: Mmap = {
-        let path = std::env::var("FASTREACH_GRAPH").unwrap_or_else(|_| GRAPH_DEFAULT.to_owned());
-        let file = File::open(path).expect("failed to open graph data");
-        unsafe { Mmap::map(&file).expect("failed mmap") }
-    };
-}
+static GRAPH_DATA: LazyLock<Mmap> = LazyLock::new(|| {
+    let path = std::env::var("FASTREACH_GRAPH").unwrap_or_else(|_| GRAPH_DEFAULT.to_owned());
+    let file = File::open(path).expect("failed to open graph data");
+    unsafe { Mmap::map(&file).expect("failed mmap") }
+});
 
 #[derive(serde_derive::Deserialize)]
 struct IsochroneBody {
@@ -128,12 +128,15 @@ async fn main() {
             }
         });
 
-    let (_addr, serve) = warp::serve(api.or(filters::static_content(static_path)))
-        .bind_with_graceful_shutdown(([0, 0, 0, 0], 8080), async move {
+    let serve = warp::serve(api.or(filters::static_content(static_path)))
+        .bind(([0, 0, 0, 0], 8080))
+        .await
+        .graceful(async move {
             tokio::signal::ctrl_c()
                 .await
                 .expect("failed to listen to shutdown signal");
-        });
+        })
+        .run();
 
     println!("Serving {node_count} nodes on 0.0.0.0:8080");
     serve.await;

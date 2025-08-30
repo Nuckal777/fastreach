@@ -202,7 +202,7 @@ impl Graph<'_> {
     /// # Errors
     /// When file is too small.
     #[allow(clippy::cast_sign_loss, clippy::cast_lossless)]
-    pub fn from_slice(data: &[u8]) -> Result<Graph, Error> {
+    pub fn from_slice(data: &[u8]) -> Result<Graph<'_>, Error> {
         let mut reader = std::io::Cursor::new(data);
         let node_count = reader.read_u32::<LE>()?;
         let mut nodes = Vec::with_capacity(node_count as usize);
