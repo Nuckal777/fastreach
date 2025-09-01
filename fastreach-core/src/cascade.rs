@@ -1,5 +1,5 @@
 use geo::{
-    BoundingRect, ConvexHull, CoordsIter, GeoFloat, HaversineDistance, Intersects, MultiPolygon,
+    BoundingRect, ConvexHull, CoordsIter, Distance, GeoFloat, Haversine, Intersects, MultiPolygon,
     Polygon,
 };
 use geo_clipper::Clipper;
@@ -120,7 +120,8 @@ pub fn diameter<T: GeoFloat + FromPrimitive>(poly: &MultiPolygon<T>) -> T {
     let mut diameter = T::zero();
     for i in hull.exterior().points() {
         for j in hull.exterior().points() {
-            let distance = i.haversine_distance(&j);
+            let distance = Haversine.distance(i, j);
+            // let distance = i.haversine_distance(&j);
             if distance > diameter {
                 diameter = distance;
             }

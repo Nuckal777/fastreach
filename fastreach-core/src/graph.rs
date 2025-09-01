@@ -3,7 +3,7 @@ use std::str::Utf8Error;
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use fnv::FnvHashMap;
-use geo::{GeoFloat, HaversineDistance};
+use geo::{Distance, GeoFloat, Haversine};
 use num_traits::FromPrimitive;
 use smallvec::SmallVec;
 
@@ -259,7 +259,7 @@ impl<'a, 'b> TimedNode<'a, 'b> {
         let distance = num_traits::cast::<f32, T>(MOVE_SPEED).unwrap()
             * num_traits::cast::<i64, T>(self.duration.num_minutes()).unwrap();
         crate::vincenty::spherical_circle(
-            geo::Coord::from((
+            geo::Point::from((
                 num_traits::cast(self.node.lon()).unwrap(),
                 num_traits::cast(self.node.lat()).unwrap(),
             )),
@@ -438,10 +438,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
                 let stored_arrival = arrivals.get(&out.end()).unwrap_or(&NaiveDateTime::MAX);
                 if arrival < *stored_arrival {
                     let out_node = &self.graph.nodes[out.end() as usize];
-                    let distance = current
-                        .node
-                        .to_point()
-                        .haversine_distance(&out_node.to_point());
+                    let distance = Haversine.distance(current.node.to_point(), out_node.to_point());
                     let current_radius =
                         MOVE_SPEED * (duration - current.duration).num_minutes() as f32;
                     let out_remaining = duration - total_duration;

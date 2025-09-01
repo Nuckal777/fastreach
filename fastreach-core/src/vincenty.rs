@@ -1,4 +1,4 @@
-use geo::{Coord, GeoFloat, HaversineDestination, Point};
+use geo::{Coord, Destination, GeoFloat, Haversine, Point};
 use num_traits::FromPrimitive;
 
 /// takes a (lon, lat) and returns a Vec<(lon, lat)>.
@@ -7,7 +7,7 @@ use num_traits::FromPrimitive;
 /// When T cannot be cast to f32.
 #[must_use]
 pub fn spherical_circle<T: GeoFloat + FromPrimitive>(
-    point: Coord<T>,
+    point: Point<T>,
     vertecies: usize,
     distance: T,
 ) -> Vec<Coord<T>> {
@@ -15,11 +15,7 @@ pub fn spherical_circle<T: GeoFloat + FromPrimitive>(
     let mut points = Vec::<Coord<T>>::with_capacity(vertecies);
     for i in 0..vertecies {
         let angle = step * num_traits::cast(i).unwrap();
-        points.push(
-            Point::from(point)
-                .haversine_destination(angle, distance)
-                .into(),
-        );
+        points.push(Haversine.destination(point, angle, distance).into());
     }
     points
 }
