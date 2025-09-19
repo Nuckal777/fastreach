@@ -58,6 +58,8 @@ pub struct Edge<'a> {
 }
 
 impl<'a> Edge<'a> {
+    const JOURNEY_SIZE: usize = 5;
+
     #[must_use]
     pub fn start(&self) -> u32 {
         unsafe {
@@ -87,8 +89,8 @@ impl<'a> Edge<'a> {
             // can only error when len of slice is not 2 which panics beforehand
             u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
         } as usize;
-        let journeys = &self.data[12..12 + (journey_count * 6)];
-        journeys.chunks_exact(6).map(|c| Journey { data: c })
+        let journeys = &self.data[12..12 + (journey_count * Self::JOURNEY_SIZE)];
+        journeys.chunks_exact(Self::JOURNEY_SIZE).map(|c| Journey { data: c })
     }
 
     #[must_use]
@@ -97,7 +99,7 @@ impl<'a> Edge<'a> {
             // can only error when len of slice is not 2 which panics beforehand
             u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
         } as usize;
-        let mut offset = 12 + (journey_count * 6);
+        let mut offset = 12 + (journey_count * Self::JOURNEY_SIZE);
         let period_bytes = unsafe {
             // can only error when len of slice is not 2 which panics beforehand
             u16::from_le_bytes(self.data[offset..offset + 2].try_into().unwrap_unchecked())
@@ -117,25 +119,19 @@ pub struct Journey<'a> {
 impl Journey<'_> {
     #[must_use]
     pub fn arrival(&self) -> u16 {
-        unsafe {
-            // can only error when len of slice is not 2 which panics beforehand
-            u16::from_le_bytes(self.data[..2].try_into().unwrap_unchecked())
-        }
+        u16::from(self.data[0]) | u16::from(self.data[1] & 0xF0) << 4
     }
 
     #[must_use]
     pub fn departure(&self) -> u16 {
-        unsafe {
-            // can only error when len of slice is not 2 which panics beforehand
-            u16::from_le_bytes(self.data[2..4].try_into().unwrap_unchecked())
-        }
+        u16::from(self.data[2]) | u16::from(self.data[1] & 0xF) << 8
     }
 
     #[must_use]
     pub fn operating_period_index(&self) -> u16 {
         unsafe {
             // can only error when len of slice is not 2 which panics beforehand
-            u16::from_le_bytes(self.data[4..6].try_into().unwrap_unchecked())
+            u16::from_le_bytes(self.data[3..5].try_into().unwrap_unchecked())
         }
     }
 }
@@ -227,8 +223,8 @@ impl Graph<'_> {
             let start = reader.read_u32::<LE>()?;
             // end + walk_seconds 6 bytes
             reader.set_position(reader.position() + 6);
-            let journeys_count = reader.read_u16::<LE>()?;
-            reader.set_position(reader.position() + (6 * journeys_count as u64));
+            let journeys_count = reader.read_u16::<LE>()? as usize;
+            reader.set_position(reader.position() + (Edge::JOURNEY_SIZE * journeys_count) as u64);
             let periods_bytes = reader.read_u16::<LE>()?;
             reader.set_position(reader.position() + periods_bytes as u64);
             let end = reader.position().try_into()?;
