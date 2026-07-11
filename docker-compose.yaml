@@ -14,10 +14,12 @@ services:
 
     - traefik.http.routers.static.rule=Host(`${HOSTNAME}`)
     - traefik.http.routers.static.tls=true
+    - traefik.http.routers.static.tls.certResolver=le
     - traefik.http.routers.static.middlewares=fr-compression
 
     - traefik.http.routers.api.rule=Host(`${HOSTNAME}`) && PathPrefix(`/api`)
     - traefik.http.routers.api.tls=true
+    - traefik.http.routers.api.tls.certResolver=le
     - traefik.http.routers.api.middlewares=fr-ratelimit
     volumes:
     - ./fastreach-ui/nodes-v1.json:/usr/share/fastreach/nodes-v1.json

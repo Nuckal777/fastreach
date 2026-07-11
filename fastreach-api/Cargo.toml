@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 chrono = { version = "0.4" }
 fastreach-core = { path = "../fastreach-core" }
-geo = "0.30"
-geojson = "0.24"
+geo = "0.33"
+geojson = "1.0"
 memmap2 = "0.9"
 serde = "1"
 serde_derive = "1"

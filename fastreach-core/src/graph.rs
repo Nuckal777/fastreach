@@ -90,7 +90,9 @@ impl<'a> Edge<'a> {
             u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
         } as usize;
         let journeys = &self.data[12..12 + (journey_count * Self::JOURNEY_SIZE)];
-        journeys.chunks_exact(Self::JOURNEY_SIZE).map(|c| Journey { data: c })
+        journeys
+            .chunks_exact(Self::JOURNEY_SIZE)
+            .map(|c| Journey { data: c })
     }
 
     #[must_use]
