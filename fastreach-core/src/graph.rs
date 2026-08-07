@@ -1,4 +1,4 @@
-use std::str::Utf8Error;
+use std::{io::Seek, str::Utf8Error};
 
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
@@ -57,8 +57,44 @@ pub struct Edge<'a> {
     data: &'a [u8],
 }
 
+struct JourneyIterator<'a> {
+    data: &'a [u8],
+    index: usize,
+}
+
+impl<'a> Iterator for JourneyIterator<'a> {
+    type Item = Journey<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index == self.data.len() {
+            return None;
+        }
+        if self.index > self.data.len() {
+            panic!("read required beyond journey boundary");
+        }
+        let period_byte = self.data[self.index + 3];
+        let journey_len = if period_byte < 128 { 4 } else { 5 };
+        let out = Journey {
+            data: &self.data[self.index..self.index + journey_len],
+        };
+        self.index += journey_len;
+        Some(out)
+    }
+}
+
 impl<'a> Edge<'a> {
-    const JOURNEY_SIZE: usize = 5;
+    pub fn from_reader(reader: &mut std::io::Cursor<&'a [u8]>) -> Result<Edge<'a>, std::io::Error> {
+        let start = reader.position();
+        reader.seek_relative(10)?;
+        let journey_bytes = reader.read_u16::<byteorder::LE>()?;
+        reader.seek_relative(journey_bytes as i64)?;
+        let period_bytes = reader.read_u16::<byteorder::LE>()?;
+        reader.seek_relative(period_bytes as i64)?;
+        let end = reader.position();
+        Ok(Edge {
+            data: &reader.get_ref()[start as usize..end as usize],
+        })
+    }
 
     #[must_use]
     pub fn start(&self) -> u32 {
@@ -89,19 +125,19 @@ impl<'a> Edge<'a> {
             // can only error when len of slice is not 2 which panics beforehand
             u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
         } as usize;
-        let journeys = &self.data[12..12 + (journey_count * Self::JOURNEY_SIZE)];
-        journeys
-            .chunks_exact(Self::JOURNEY_SIZE)
-            .map(|c| Journey { data: c })
+        JourneyIterator {
+            data: &self.data[12..12 + journey_count as usize],
+            index: 0,
+        }
     }
 
     #[must_use]
     pub fn operating_periods(&self) -> OperatingPeriodIter<'a> {
-        let journey_count = unsafe {
+        let journey_bytes = unsafe {
             // can only error when len of slice is not 2 which panics beforehand
             u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
         } as usize;
-        let mut offset = 12 + (journey_count * Self::JOURNEY_SIZE);
+        let mut offset = 12 + journey_bytes;
         let period_bytes = unsafe {
             // can only error when len of slice is not 2 which panics beforehand
             u16::from_le_bytes(self.data[offset..offset + 2].try_into().unwrap_unchecked())
@@ -131,10 +167,12 @@ impl Journey<'_> {
 
     #[must_use]
     pub fn operating_period_index(&self) -> u16 {
-        unsafe {
-            // can only error when len of slice is not 2 which panics beforehand
-            u16::from_le_bytes(self.data[3..5].try_into().unwrap_unchecked())
+        let byte1 = self.data[3];
+        if byte1 < 128 {
+            return byte1 as u16;
         }
+        let byte2 = self.data[4];
+        (((byte1 & 0x7F) as u16) << 8) | (byte2 as u16)
     }
 }
 
@@ -221,18 +259,8 @@ impl Graph<'_> {
         }
         let edge_count = reader.read_u32::<LE>()?;
         for _ in 0..edge_count {
-            let offset: usize = reader.position().try_into()?;
-            let start = reader.read_u32::<LE>()?;
-            // end + walk_seconds 6 bytes
-            reader.set_position(reader.position() + 6);
-            let journeys_count = reader.read_u16::<LE>()? as usize;
-            reader.set_position(reader.position() + (Edge::JOURNEY_SIZE * journeys_count) as u64);
-            let periods_bytes = reader.read_u16::<LE>()?;
-            reader.set_position(reader.position() + periods_bytes as u64);
-            let end = reader.position().try_into()?;
-            nodes[start as usize].outgoing.push(Edge {
-                data: &data[offset..end],
-            });
+            let edge = Edge::from_reader(&mut reader)?;
+            nodes[edge.start() as usize].outgoing.push(edge);
         }
         Ok(Graph { nodes, ids })
     }

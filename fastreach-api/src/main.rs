@@ -103,6 +103,7 @@ async fn main() {
 
     let graph = Graph::from_slice(&GRAPH_DATA).expect("failed to parse graph");
     let node_count = graph.nodes.len();
+    let edge_count: usize = graph.nodes.iter().map(|n| n.outgoing.len()).sum();
     let semaphore = Arc::new(tokio::sync::Semaphore::new(parallel));
     let iso_handler = Arc::new(IsochroneHandler { graph, max_minutes });
     let api = warp::post()
@@ -138,7 +139,7 @@ async fn main() {
         })
         .run();
 
-    println!("Serving {node_count} nodes on 0.0.0.0:8080");
+    println!("Serving {node_count} nodes and {edge_count} edges on 0.0.0.0:8080");
     serve.await;
 
     println!("Bye");
