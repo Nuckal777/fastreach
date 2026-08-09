@@ -1,4 +1,7 @@
-use std::{io::Seek, str::Utf8Error};
+use std::{
+    io::{Read, Seek},
+    str::Utf8Error,
+};
 
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
@@ -86,7 +89,7 @@ impl<'a> Edge<'a> {
     pub fn from_reader(reader: &mut std::io::Cursor<&'a [u8]>) -> Result<Edge<'a>, std::io::Error> {
         let start = reader.position();
         reader.seek_relative(10)?;
-        let journey_bytes = reader.read_u16::<byteorder::LE>()?;
+        let journey_bytes = reader.read_u32::<byteorder::LE>()?;
         reader.seek_relative(journey_bytes as i64)?;
         let period_bytes = reader.read_u16::<byteorder::LE>()?;
         reader.seek_relative(period_bytes as i64)?;
@@ -123,10 +126,10 @@ impl<'a> Edge<'a> {
     pub fn journeys(&self) -> impl Iterator<Item = Journey<'a>> {
         let journey_count = unsafe {
             // can only error when len of slice is not 2 which panics beforehand
-            u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
+            u32::from_le_bytes(self.data[10..14].try_into().unwrap_unchecked())
         } as usize;
         JourneyIterator {
-            data: &self.data[12..12 + journey_count as usize],
+            data: &self.data[14..14 + journey_count as usize],
             index: 0,
         }
     }
@@ -135,9 +138,9 @@ impl<'a> Edge<'a> {
     pub fn operating_periods(&self) -> OperatingPeriodIter<'a> {
         let journey_bytes = unsafe {
             // can only error when len of slice is not 2 which panics beforehand
-            u16::from_le_bytes(self.data[10..12].try_into().unwrap_unchecked())
+            u32::from_le_bytes(self.data[10..14].try_into().unwrap_unchecked())
         } as usize;
-        let mut offset = 12 + journey_bytes;
+        let mut offset = 14 + journey_bytes;
         let period_bytes = unsafe {
             // can only error when len of slice is not 2 which panics beforehand
             u16::from_le_bytes(self.data[offset..offset + 2].try_into().unwrap_unchecked())
@@ -198,9 +201,11 @@ impl OperatingPeriod<'_> {
     }
 
     #[must_use]
-    pub fn valid_days(&self) -> &[u8] {
-        let len = self.data[4] as usize;
-        &self.data[5..5 + len]
+    pub fn valid_days_idx(&self) -> u16 {
+        unsafe {
+            // can only error when len of slice is not 2 which panics beforehand
+            u16::from_le_bytes(self.data[4..6].try_into().unwrap_unchecked())
+        }
     }
 }
 
@@ -217,9 +222,7 @@ impl<'a> Iterator for OperatingPeriodIter<'a> {
         if start >= self.data.len() {
             return None;
         }
-        self.offset += 4;
-        let valid_days_len = self.data[self.offset];
-        self.offset += 1 + valid_days_len as usize;
+        self.offset += 6;
         Some(OperatingPeriod {
             data: &self.data[start..self.offset],
         })
@@ -229,6 +232,7 @@ impl<'a> Iterator for OperatingPeriodIter<'a> {
 pub struct Graph<'a> {
     pub nodes: Vec<Node<'a>>,
     pub ids: FnvHashMap<u64, usize>,
+    pub valid_days: Vec<Vec<u8>>,
 }
 
 type Error = Box<dyn std::error::Error>;
@@ -257,12 +261,24 @@ impl Graph<'_> {
                 outgoing: SmallVec::new(),
             });
         }
+        let valid_days_count = reader.read_u16::<LE>()?;
+        let mut valid_days = Vec::<Vec<u8>>::new();
+        for _ in 0..valid_days_count {
+            let valid_days_len = reader.read_u8()?;
+            let mut bits = vec![0; valid_days_len as usize];
+            reader.read_exact(&mut bits)?;
+            valid_days.push(bits);
+        }
         let edge_count = reader.read_u32::<LE>()?;
         for _ in 0..edge_count {
             let edge = Edge::from_reader(&mut reader)?;
             nodes[edge.start() as usize].outgoing.push(edge);
         }
-        Ok(Graph { nodes, ids })
+        Ok(Graph {
+            nodes,
+            ids,
+            valid_days,
+        })
     }
 }
 
@@ -359,7 +375,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         NaiveDate::from_ymd_opt(i32::from(year) + 2000, month.into(), day.into()).unwrap()
     }
 
-    fn valid_on(period: &OperatingPeriod<'b>, date: NaiveDate) -> Result<bool, Error> {
+    fn valid_on(&self, period: &OperatingPeriod<'b>, date: NaiveDate) -> Result<bool, Error> {
         let start = Self::u16_to_date(period.start());
         let end = Self::u16_to_date(period.end());
         if date < start || date > end {
@@ -369,7 +385,9 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         let days: usize = diff.num_days().try_into()?;
         let idx = days / 8;
         let off = days % 8;
-        Ok((1 << off & period.valid_days()[idx]) > 0)
+        let valid_day_idx = period.valid_days_idx() as usize;
+        let valid_days = &self.graph.valid_days[valid_day_idx];
+        Ok((1 << off & valid_days[idx]) > 0)
     }
 
     fn next_journey(
@@ -386,7 +404,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
                 continue;
             }
             let period = &self.periods[journey.operating_period_index() as usize];
-            if !Self::valid_on(period, start.date())? {
+            if !self.valid_on(period, start.date())? {
                 continue;
             }
             departure = current_departure;
