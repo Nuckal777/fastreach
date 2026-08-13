@@ -12,6 +12,37 @@ use smallvec::SmallVec;
 
 const MOVE_SPEED: f32 = 1000.0 / 12.0; // in m/min
 
+pub struct Metadata<'a> {
+    data: &'a [u8],
+}
+
+impl Metadata<'_> {
+    #[must_use]
+    pub fn from(&self) -> u16 {
+        unsafe {
+            // can only error when len of slice is not 2 which panics beforehand
+            u16::from_le_bytes(self.data[0..2].try_into().unwrap_unchecked())
+        }
+    }
+
+    #[must_use]
+    pub fn to(&self) -> u16 {
+        unsafe {
+            // can only error when len of slice is not 2 which panics beforehand
+            u16::from_le_bytes(self.data[2..4].try_into().unwrap_unchecked())
+        }
+    }
+
+    #[must_use]
+    pub fn name(&self) -> &str {
+        unsafe {
+            // can only error when len of slice is not 2 which panics beforehand
+            let len = u16::from_le_bytes(self.data[4..6].try_into().unwrap_unchecked());
+            str::from_utf8_unchecked(&self.data[6..6 + len as usize])
+        }
+    }
+}
+
 pub struct Node<'a> {
     // binary data
     data: &'a [u8],
@@ -41,10 +72,9 @@ impl Node<'_> {
         geo::Point::from([self.lon(), self.lat()])
     }
 
-    /// # Errors
-    /// When name is not utf-8 encoded.
-    pub fn name(&self) -> Result<&str, Utf8Error> {
-        std::str::from_utf8(&self.data[18..])
+    #[must_use]
+    pub fn name(&self) -> &str {
+        unsafe { std::str::from_utf8_unchecked(&self.data[18..]) }
     }
 }
 
@@ -230,6 +260,7 @@ impl<'a> Iterator for OperatingPeriodIter<'a> {
 }
 
 pub struct Graph<'a> {
+    pub metadata: Metadata<'a>,
     pub nodes: Vec<Node<'a>>,
     pub ids: FnvHashMap<u64, usize>,
     pub valid_days: Vec<Vec<u8>>,
@@ -244,6 +275,11 @@ impl Graph<'_> {
     #[allow(clippy::cast_sign_loss, clippy::cast_lossless)]
     pub fn from_slice(data: &[u8]) -> Result<Graph<'_>, Error> {
         let mut reader = std::io::Cursor::new(data);
+        let metadata_len = reader.read_u16::<LE>()?;
+        let metadata = Metadata {
+            data: &data[2..2 + metadata_len as usize],
+        };
+        reader.seek_relative(metadata_len as i64)?;
         let node_count = reader.read_u32::<LE>()?;
         let mut nodes = Vec::with_capacity(node_count as usize);
         let mut ids = FnvHashMap::<u64, usize>::default();
@@ -275,6 +311,7 @@ impl Graph<'_> {
             nodes[edge.start() as usize].outgoing.push(edge);
         }
         Ok(Graph {
+            metadata,
             nodes,
             ids,
             valid_days,
@@ -352,6 +389,13 @@ pub struct IsochroneDijsktra<'a, 'b> {
     periods: Vec<OperatingPeriod<'b>>,
 }
 
+pub fn u16_to_date(number: u16) -> NaiveDate {
+    let year = number & 0b_0000_0000_0111_1111;
+    let month = (number >> 7) & 0b_0000_0000_0000_1111;
+    let day = (number >> 11) & 0b_0000_0000_0001_1111;
+    NaiveDate::from_ymd_opt(i32::from(year) + 2000, month.into(), day.into()).unwrap()
+}
+
 impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
     #[must_use]
     pub fn new(graph: &'a Graph<'b>) -> Self {
@@ -368,16 +412,9 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         NaiveTime::from_hms_opt(hour as u32, minute as u32, 0).unwrap()
     }
 
-    fn u16_to_date(number: u16) -> NaiveDate {
-        let year = number & 0b_0000_0000_0111_1111;
-        let month = (number >> 7) & 0b_0000_0000_0000_1111;
-        let day = (number >> 11) & 0b_0000_0000_0001_1111;
-        NaiveDate::from_ymd_opt(i32::from(year) + 2000, month.into(), day.into()).unwrap()
-    }
-
     fn valid_on(&self, period: &OperatingPeriod<'b>, date: NaiveDate) -> Result<bool, Error> {
-        let start = Self::u16_to_date(period.start());
-        let end = Self::u16_to_date(period.end());
+        let start = super::graph::u16_to_date(period.start());
+        let end = super::graph::u16_to_date(period.end());
         if date < start || date > end {
             return Ok(false);
         }
