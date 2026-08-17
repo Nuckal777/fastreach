@@ -6,13 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = { version = "0.4" }
+chrono = { version = "0.4", features = ["serde"] }
 fastreach-core = { path = "../fastreach-core" }
 geo = "0.33"
 geojson = "1.0"
 memmap2 = "0.9"
 serde = "1"
 serde_derive = "1"
+serde_json = "1"
 thiserror = "2.0"
 tokio = { version = "1", features = ["macros", "signal", "rt-multi-thread"] }
+tokio-util = "0.7"
 warp = { version = "0.4", default-features = false, features = ["server"]}

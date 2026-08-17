@@ -15,21 +15,28 @@ use warp::{http::StatusCode, reply, Filter};
 
 mod filters;
 
-const GRAPH_DEFAULT: &str = "graph.bin";
 const STATIC_DEFAULT: &str = "static";
 const MAX_MINUTES_DEFAULT: i64 = 120;
 const PARALLEL_DEFAULT: usize = 2;
 
-static GRAPH_DATA: LazyLock<Mmap> = LazyLock::new(|| {
-    let path = std::env::var("FASTREACH_GRAPH").unwrap_or_else(|_| GRAPH_DEFAULT.to_owned());
-    let file = File::open(path).expect("failed to open graph data");
-    unsafe { Mmap::map(&file).expect("failed mmap") }
+static GRAPH_DATAS: LazyLock<Vec<Mmap>> = LazyLock::new(|| {
+    let mut result = Vec::<Mmap>::new();
+    const DATA_DIR: &str = "data";
+    let dir_iter = std::fs::read_dir(DATA_DIR).expect("failed to list data directory");
+    for entry in dir_iter {
+        let entry = entry.expect("failed to list entry in data directory");
+        let file = File::open(entry.path()).expect("failed to open graph");
+        let mapping = unsafe { Mmap::map(&file).expect("failed memory mapping") };
+        result.push(mapping);
+    }
+    result
 });
 
 #[derive(serde_derive::Deserialize)]
 struct IsochroneBody {
     // JS cannot deal with large integers in JSON
     id: String,
+    dataset: usize,
     start: i64,
     minutes: i64,
 }
@@ -49,8 +56,34 @@ pub enum HandlerError {
     InternalServerError(String),
 }
 
+#[derive(Clone, Debug, serde_derive::Serialize)]
+struct DatasetInfo {
+    name: String,
+    nodes: usize,
+    edges: usize,
+    from: chrono::NaiveDate,
+    to: chrono::NaiveDate,
+}
+
+#[derive(serde_derive::Serialize)]
+struct DatasetsReply {
+    datasets: Vec<DatasetInfo>,
+}
+
+struct DatasetsHandler {
+    infos: Vec<DatasetInfo>,
+}
+
+impl DatasetsHandler {
+    fn handle_datasets(&self) -> Result<DatasetsReply, HandlerError> {
+        Ok(DatasetsReply {
+            datasets: self.infos.clone(),
+        })
+    }
+}
+
 struct IsochroneHandler<'a> {
-    graph: Graph<'a>,
+    graphs: Vec<Graph<'a>>,
     max_minutes: i64,
 }
 
@@ -61,14 +94,17 @@ impl IsochroneHandler<'_> {
         }
         let id = str::parse::<u64>(&body.id)
             .map_err(|_| HandlerError::BadRequest("cannot parse id".to_owned()))?;
-        let start_idx = self
-            .graph
+        let graph = match self.graphs.get(body.dataset) {
+            Some(g) => g,
+            None => return Err(HandlerError::BadRequest("dataset out of range".to_owned())),
+        };
+        let start_idx = graph
             .ids
             .get(&id)
             .ok_or(HandlerError::BadRequest("station not found".to_owned()))?;
         let start_time = DateTime::from_timestamp_millis(body.start)
             .ok_or(HandlerError::BadRequest("invalid start time".to_owned()))?;
-        let mut algo = IsochroneDijsktra::new(&self.graph);
+        let mut algo = IsochroneDijsktra::new(&graph);
         let reached = algo
             .nodes_within(
                 *start_idx,
@@ -88,6 +124,14 @@ impl IsochroneHandler<'_> {
     }
 }
 
+#[derive(serde_derive::Serialize)]
+struct NodeInfo {
+    id: u64,
+    lat: f32,
+    lon: f32,
+    name: String,
+}
+
 #[tokio::main]
 async fn main() {
     let max_minutes = match std::env::var("FASTREACH_MAX_MINUTES") {
@@ -101,15 +145,56 @@ async fn main() {
     let static_path =
         std::env::var("FASTREACH_STATIC").unwrap_or_else(|_| STATIC_DEFAULT.to_owned());
 
-    let graph = Graph::from_slice(&GRAPH_DATA).expect("failed to parse graph");
-    let node_count = graph.nodes.len();
-    let edge_count: usize = graph.nodes.iter().map(|n| n.outgoing.len()).sum();
-    let dataset_name = graph.metadata.name().to_owned();
-    let dataset_from = u16_to_date(graph.metadata.from());
-    let dataset_to = u16_to_date(graph.metadata.to());
+    let mut graphs = Vec::<Graph>::new();
+    let mut infos = Vec::<DatasetInfo>::new();
+    for mapping in GRAPH_DATAS.iter() {
+        let graph = Graph::from_slice(&mapping).expect("failed to parse grpah");
+        let node_count = graph.nodes.len();
+        let edge_count: usize = graph.nodes.iter().map(|n| n.outgoing.len()).sum();
+        let dataset_name = graph.metadata.name().to_owned();
+        let dataset_from = u16_to_date(graph.metadata.from());
+        let dataset_to = u16_to_date(graph.metadata.to());
+        println!(
+            "Loaded {node_count} nodes and {edge_count} edges from {dataset_name} ({dataset_from} - {dataset_to})"
+        );
+        graphs.push(graph);
+        infos.push(DatasetInfo {
+            name: dataset_name,
+            nodes: node_count,
+            edges: edge_count,
+            from: dataset_from,
+            to: dataset_to,
+        });
+    }
+
+    const CACHE_DIR: &str = "cache";
+    for (i, graph) in graphs.iter().enumerate() {
+        let filename = format!("{CACHE_DIR}/{i}.json");
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .create(true)
+            .open(filename)
+            .expect("failed to open nodes file");
+        let nodes: Vec<NodeInfo> = graph
+            .nodes
+            .iter()
+            .map(|n| NodeInfo {
+                id: n.id(),
+                lat: n.lat(),
+                lon: n.lon(),
+                name: n.name().to_string(),
+            })
+            .collect();
+        serde_json::to_writer(file, &nodes).expect("failed to serialize nodes");
+    }
+
     let semaphore = Arc::new(tokio::sync::Semaphore::new(parallel));
-    let iso_handler = Arc::new(IsochroneHandler { graph, max_minutes });
-    let api = warp::post()
+    let iso_handler = Arc::new(IsochroneHandler {
+        graphs,
+        max_minutes,
+    });
+    let isochrone_api = warp::post()
         .and(warp::path!("api" / "v1" / "isochrone"))
         .and(warp::body::json::<IsochroneBody>())
         .then(move |body: IsochroneBody| {
@@ -132,6 +217,39 @@ async fn main() {
             }
         });
 
+    let datasets_handler = Arc::new(DatasetsHandler { infos: infos });
+    let datasets_api = warp::get()
+        .and(warp::path!("api" / "v1" / "datasets"))
+        .then(move || {
+            let local_handler = datasets_handler.clone();
+            async move {
+                match local_handler.handle_datasets() {
+                    Ok(reply) => reply::with_status(reply::json(&reply), StatusCode::OK),
+                    Err(HandlerError::BadRequest(msg)) => {
+                        reply::with_status(reply::json(&msg), StatusCode::BAD_REQUEST)
+                    }
+                    Err(HandlerError::InternalServerError(msg)) => {
+                        reply::with_status(reply::json(&msg), StatusCode::INTERNAL_SERVER_ERROR)
+                    }
+                }
+            }
+        });
+
+    let nodes_api = warp::get()
+        .and(warp::path!("api" / "v1" / "nodes" / u32))
+        .then(move |idx| async move {
+            let filename = format!("{CACHE_DIR}/{idx}.json");
+            match tokio::fs::File::open(filename).await {
+                Ok(f) => {
+                    let stream = tokio_util::io::ReaderStream::new(f);
+                    Box::new(warp::reply::stream(stream)) as Box<dyn warp::Reply>
+                }
+                Err(_) => Box::new(warp::reply::with_status(reply(), StatusCode::NOT_FOUND))
+                    as Box<dyn warp::Reply>,
+            }
+        });
+
+    let api = isochrone_api.or(nodes_api).or(datasets_api);
     let serve = warp::serve(api.or(filters::static_content(static_path)))
         .bind(([0, 0, 0, 0], 8080))
         .await
@@ -142,9 +260,7 @@ async fn main() {
         })
         .run();
 
-    println!(
-        "Serving {node_count} nodes and {edge_count} edges from {dataset_name} ({dataset_from} - {dataset_to}) on 0.0.0.0:8080"
-    );
+    println!("Serving on 0.0.0.0:8080");
     serve.await;
 
     println!("Bye");

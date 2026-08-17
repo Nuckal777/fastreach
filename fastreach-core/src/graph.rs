@@ -1,7 +1,4 @@
-use std::{
-    io::{Read, Seek},
-    str::Utf8Error,
-};
+use std::io::{Read, Seek};
 
 use byteorder::{LittleEndian as LE, ReadBytesExt};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
@@ -51,6 +48,14 @@ pub struct Node<'a> {
 }
 
 impl Node<'_> {
+    #[must_use]
+    pub fn id(&self) -> u64 {
+        unsafe {
+            // can only error when len of slice is not 4 which panics beforehand
+            u64::from_le_bytes(self.data[..8].try_into().unwrap_unchecked())
+        }
+    }
+
     #[must_use]
     pub fn lat(&self) -> f32 {
         unsafe {
