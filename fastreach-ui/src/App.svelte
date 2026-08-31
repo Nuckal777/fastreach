@@ -1,16 +1,16 @@
 <script lang="ts">
     import "purecss/build/pure-min.css";
-    import { onMount } from "svelte";
     import IsochroneConfig from "./lib/IsochroneConfig.svelte";
     import IsochroneTable from "./lib/IsochroneTable.svelte";
     import Map from "./lib/Map.svelte";
     import Toggle from "./lib/Toggle.svelte";
-    import { nodes } from "./lib/store";
-    import type { IsochroneCall, NodeResponse } from "./lib/types";
+    import type { IndexedDataset, IsochroneCall } from "./lib/types";
     import Info from "./lib/Info.svelte";
     import Zoom from "./lib/Zoom.svelte";
+    import DatasetSelect from "./lib/DatasetSelect.svelte";
 
     let infoOpen = $state(true);
+    let dataset: IndexedDataset | undefined = $state(undefined);
     let isochrones: IsochroneCall[] = $state([]);
 
     function addIsochrone(iso: IsochroneCall) {
@@ -21,20 +21,9 @@
         isochrones = isochrones.toSpliced(index, 1);
     }
 
-    async function fetchNodes() {
-        const res = await fetch("/nodes-v1.json");
-        if (!res.ok) {
-            nodes.set({
-                response: [],
-                error: `HTTP request failed, status code: ${res.status}`,
-            });
-            return;
-        }
-        const nodeRes = (await res.json()) as NodeResponse;
-        nodes.set({ response: nodeRes, error: "" });
+    function useDataset(ds: IndexedDataset) {
+        dataset = ds;
     }
-
-    onMount(fetchNodes);
 </script>
 
 <main>
@@ -53,7 +42,11 @@
                             onclick={() => (infoOpen = true)}
                             value="i"
                         />
-                        <IsochroneConfig useIsochrone={addIsochrone} />
+                        {#if dataset === undefined}
+                            <DatasetSelect useDataset={useDataset}></DatasetSelect>
+                        {:else}
+                            <IsochroneConfig dataset={dataset} useIsochrone={addIsochrone} />
+                        {/if}
                     </Toggle>
                 </div>
             </div>

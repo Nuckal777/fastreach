@@ -13,6 +13,7 @@ use memmap2::Mmap;
 use thiserror::Error;
 use warp::{http::StatusCode, reply, Filter};
 
+mod cache;
 mod filters;
 
 const STATIC_DEFAULT: &str = "static";
@@ -124,14 +125,6 @@ impl IsochroneHandler<'_> {
     }
 }
 
-#[derive(serde_derive::Serialize)]
-struct NodeInfo {
-    id: u64,
-    lat: f32,
-    lon: f32,
-    name: String,
-}
-
 #[tokio::main]
 async fn main() {
     let max_minutes = match std::env::var("FASTREACH_MAX_MINUTES") {
@@ -167,27 +160,7 @@ async fn main() {
         });
     }
 
-    const CACHE_DIR: &str = "cache";
-    for (i, graph) in graphs.iter().enumerate() {
-        let filename = format!("{CACHE_DIR}/{i}.json");
-        let file = std::fs::OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(filename)
-            .expect("failed to open nodes file");
-        let nodes: Vec<NodeInfo> = graph
-            .nodes
-            .iter()
-            .map(|n| NodeInfo {
-                id: n.id(),
-                lat: n.lat(),
-                lon: n.lon(),
-                name: n.name().to_string(),
-            })
-            .collect();
-        serde_json::to_writer(file, &nodes).expect("failed to serialize nodes");
-    }
+    cache::build_nodes_cache(&graphs).expect("failed to build node api cache");
 
     let semaphore = Arc::new(tokio::sync::Semaphore::new(parallel));
     let iso_handler = Arc::new(IsochroneHandler {
@@ -236,10 +209,9 @@ async fn main() {
         });
 
     let nodes_api = warp::get()
-        .and(warp::path!("api" / "v1" / "nodes" / u32))
+        .and(warp::path!("api" / "v1" / "nodes" / usize))
         .then(move |idx| async move {
-            let filename = format!("{CACHE_DIR}/{idx}.json");
-            match tokio::fs::File::open(filename).await {
+            match tokio::fs::File::open(cache::get_path_for_nodes(idx)).await {
                 Ok(f) => {
                     let stream = tokio_util::io::ReaderStream::new(f);
                     Box::new(warp::reply::stream(stream)) as Box<dyn warp::Reply>
