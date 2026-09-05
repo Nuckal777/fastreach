@@ -105,7 +105,7 @@ impl IsochroneHandler<'_> {
             .ok_or(HandlerError::BadRequest("station not found".to_owned()))?;
         let start_time = DateTime::from_timestamp_millis(body.start)
             .ok_or(HandlerError::BadRequest("invalid start time".to_owned()))?;
-        let mut algo = IsochroneDijsktra::new(&graph);
+        let mut algo = IsochroneDijsktra::new(graph);
         let reached = algo
             .nodes_within(
                 *start_idx,
@@ -141,7 +141,7 @@ async fn main() {
     let mut graphs = Vec::<Graph>::new();
     let mut infos = Vec::<DatasetInfo>::new();
     for mapping in GRAPH_DATAS.iter() {
-        let graph = Graph::from_slice(&mapping).expect("failed to parse grpah");
+        let graph = Graph::from_slice(mapping).expect("failed to parse grpah");
         let node_count = graph.nodes.len();
         let edge_count: usize = graph.nodes.iter().map(|n| n.outgoing.len()).sum();
         let dataset_name = graph.metadata.name().to_owned();
@@ -190,7 +190,7 @@ async fn main() {
             }
         });
 
-    let datasets_handler = Arc::new(DatasetsHandler { infos: infos });
+    let datasets_handler = Arc::new(DatasetsHandler { infos });
     let datasets_api = warp::get()
         .and(warp::path!("api" / "v1" / "datasets"))
         .then(move || {

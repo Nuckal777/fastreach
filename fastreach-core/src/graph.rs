@@ -164,7 +164,7 @@ impl<'a> Edge<'a> {
             u32::from_le_bytes(self.data[10..14].try_into().unwrap_unchecked())
         } as usize;
         JourneyIterator {
-            data: &self.data[14..14 + journey_count as usize],
+            data: &self.data[14..14 + journey_count],
             index: 0,
         }
     }
