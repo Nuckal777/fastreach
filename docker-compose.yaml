@@ -1,4 +1,3 @@
-version: "3.6"
 services:
   server:
     build:
@@ -24,7 +23,8 @@ services:
     volumes:
     - ./fastreach-ui/nodes-v1.json:/usr/share/fastreach/nodes-v1.json
     - ./fastreach-ui/nodes-v1.json.br:/usr/share/fastreach/nodes-v1.json.br
-    - ./graph.bin:/data/graph.bin
+    - ./data:/home/nonroot/data
+    - ./cache:/home/nonroot/cache
     environment:
     - TOKIO_WORKER_THREADS=3
     - FASTREACH_PARALLEL=2

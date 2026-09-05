@@ -1,5 +1,6 @@
 use std::{
     fs::File,
+    path::PathBuf,
     sync::{Arc, LazyLock},
 };
 
@@ -24,9 +25,12 @@ static GRAPH_DATAS: LazyLock<Vec<Mmap>> = LazyLock::new(|| {
     let mut result = Vec::<Mmap>::new();
     const DATA_DIR: &str = "data";
     let dir_iter = std::fs::read_dir(DATA_DIR).expect("failed to list data directory");
-    for entry in dir_iter {
-        let entry = entry.expect("failed to list entry in data directory");
-        let file = File::open(entry.path()).expect("failed to open graph");
+    let dir_paths: Result<Vec<PathBuf>, std::io::Error> =
+        dir_iter.map(|d| d.map(|e| e.path())).collect();
+    let mut dir_paths = dir_paths.expect("failed to list entry in data directory");
+    dir_paths.sort();
+    for entry in dir_paths {
+        let file = File::open(entry).expect("failed to open graph");
         let mapping = unsafe { Mmap::map(&file).expect("failed memory mapping") };
         result.push(mapping);
     }

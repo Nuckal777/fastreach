@@ -12,7 +12,6 @@ RUN cargo build --release
 FROM gcr.io/distroless/cc-debian12:nonroot
 COPY --from=build /app/target/release/fastreach-api /
 COPY --from=ui-build /app/fastreach-ui/dist /usr/share/fastreach
-ENV FASTREACH_GRAPH=/data/graph.bin
 ENV FASTREACH_STATIC=/usr/share/fastreach
 EXPOSE 8080
 STOPSIGNAL SIGINT

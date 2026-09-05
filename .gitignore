@@ -6,6 +6,8 @@ graph.bin
 nodes*.json
 nodes*.json.br
 .env
+data/
+cache/
 
 # Logs
 logs
