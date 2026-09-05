@@ -24,6 +24,10 @@
     function useDataset(ds: IndexedDataset) {
         dataset = ds;
     }
+
+    function clearDataset() {
+        dataset = undefined;
+    }
 </script>
 
 <main>
@@ -45,7 +49,7 @@
                         {#if dataset === undefined}
                             <DatasetSelect useDataset={useDataset}></DatasetSelect>
                         {:else}
-                            <IsochroneConfig dataset={dataset} useIsochrone={addIsochrone} />
+                            <IsochroneConfig dataset={dataset} useIsochrone={addIsochrone} clearDataset={clearDataset}/>
                         {/if}
                     </Toggle>
                 </div>

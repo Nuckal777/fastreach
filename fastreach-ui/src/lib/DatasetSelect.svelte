@@ -47,7 +47,8 @@
     {#each datasets.datasets as ds, idx}
        <hr />
        <h3>{ds.name} </h3> 
-       Stations: {ds.nodes} Edges: {ds.edges} Valid: {ds.from.toDateString()} - {ds.to.toDateString()}
+       <p>Valid: {ds.from.toDateString()} - {ds.to.toDateString()}</p>
+       <p>Stations: {ds.nodes} Edges: {ds.edges}</p>
        <div>
        <input type="button" class="pure-button pure-button-primary" value="Select" onclick={() => clickSelect(idx)} />
        </div>

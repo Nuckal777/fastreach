@@ -1,10 +1,8 @@
 <script lang="ts">
-
     import { type Node, type IsochroneConfiguration, FilterState } from "./types";
 
     const minMinutes = 5;
     const maxMinutes = 120;
-
 
     interface Props {
         useNodes: (nodes: IsochroneConfiguration) => void;
@@ -13,6 +11,8 @@
         start?: string;
         jump?: boolean;
         nodes: Node[];
+        minDate: string;
+        maxDate: string;
     }
 
     let {
@@ -21,7 +21,9 @@
         minutes = $bindable(0),
         start = $bindable(""),
         jump = $bindable(true),
-        nodes
+        nodes,
+        minDate = "",
+        maxDate = "",
     }: Props = $props();
     let matchingNodes: Node[] = [];
     let filterState = $state(FilterState.Empty);
@@ -102,6 +104,8 @@
                 name="start"
                 id="start"
                 bind:value={start}
+                min={minDate}
+                max={maxDate}
             />
         </div>
         <div class="pure-control-group">

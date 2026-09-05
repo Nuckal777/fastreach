@@ -4,7 +4,7 @@
         children?: import('svelte').Snippet;
     }
 
-    let { onBack = () => {}, children }: Props = $props();
+    let { onBack = () => {} }: Props = $props();
 </script>
 
 <input
@@ -13,7 +13,6 @@
     value="Back"
     onclick={() => onBack()}
 />
-{@render children?.()}
 
 <style>
     .font-small {
