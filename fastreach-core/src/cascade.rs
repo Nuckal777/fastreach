@@ -104,7 +104,6 @@ where
                 RTreeNode::Leaf(value) => fold(accum, value),
                 RTreeNode::Parent(parent) => {
                     let value = inner(parent, init, fold, reduce);
-
                     reduce(accum, value)
                 }
             })
@@ -116,12 +115,10 @@ where
 #[must_use]
 pub fn diameter<T: GeoFloat + FromPrimitive>(poly: &MultiPolygon<T>) -> T {
     let hull = poly.convex_hull();
-    // TODO: there is a linear algorithm to get the diameter in O(N) in euclidian space
     let mut diameter = T::zero();
     for i in hull.exterior().points() {
         for j in hull.exterior().points() {
             let distance = Haversine.distance(i, j);
-            // let distance = i.haversine_distance(&j);
             if distance > diameter {
                 diameter = distance;
             }

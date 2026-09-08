@@ -4,7 +4,8 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use chrono::{DateTime, Duration};
+use chrono::{Duration, MappedLocalTime, TimeZone};
+use chrono_tz::Europe::Berlin;
 use fastreach_core::{
     cascade,
     graph::{u16_to_date, Graph, IsochroneDijsktra},
@@ -107,8 +108,11 @@ impl IsochroneHandler<'_> {
             .ids
             .get(&id)
             .ok_or(HandlerError::BadRequest("station not found".to_owned()))?;
-        let start_time = DateTime::from_timestamp_millis(body.start)
-            .ok_or(HandlerError::BadRequest("invalid start time".to_owned()))?;
+        let MappedLocalTime::Single(start_time) = Berlin.timestamp_millis_opt(body.start) else {
+            return Err(HandlerError::BadRequest(
+                "cannot convert UTC timestamp to Europe/Berlin timezone".to_owned(),
+            ));
+        };
         let mut algo = IsochroneDijsktra::new(graph);
         let reached = algo
             .nodes_within(
