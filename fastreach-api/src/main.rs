@@ -117,7 +117,7 @@ impl IsochroneHandler<'_> {
         let reached = algo
             .nodes_within(
                 *start_idx,
-                start_time.naive_utc(),
+                start_time.naive_local(),
                 Duration::minutes(body.minutes),
             )
             .map_err(|_| HandlerError::InternalServerError("failed dijsktra".to_owned()))?;

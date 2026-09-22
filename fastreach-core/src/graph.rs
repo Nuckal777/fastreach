@@ -1,7 +1,7 @@
 use std::io::{Read, Seek};
 
 use byteorder::{LittleEndian as LE, ReadBytesExt};
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeDelta};
 use fnv::FnvHashMap;
 use geo::{Distance, GeoFloat, Haversine};
 use num_traits::FromPrimitive;
@@ -432,30 +432,6 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         Ok((1 << off & valid_days[idx]) > 0)
     }
 
-    fn next_journey(
-        &mut self,
-        edge: &Edge<'b>,
-        start: NaiveDateTime,
-    ) -> Result<Option<Journey<'b>>, Error> {
-        let mut departure = NaiveTime::from_hms_opt(23, 59, 59).unwrap();
-        let mut result = None;
-        self.periods.extend(edge.operating_periods());
-        for journey in edge.journeys() {
-            let current_departure = Self::u16_to_time(journey.departure());
-            if current_departure > departure || current_departure < start.time() {
-                continue;
-            }
-            let period = &self.periods[journey.operating_period_index() as usize];
-            if !self.valid_on(period, start.date())? {
-                continue;
-            }
-            departure = current_departure;
-            result = Some(journey);
-        }
-        self.periods.clear();
-        Ok(result)
-    }
-
     #[allow(clippy::cast_lossless)]
     fn get_walk(edge: &Edge<'b>) -> Option<chrono::Duration> {
         let walk = edge.walk();
@@ -469,12 +445,42 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
         &mut self,
         edge: &Edge<'b>,
         start: NaiveDateTime,
+        max_time: NaiveDateTime,
     ) -> Result<Option<chrono::Duration>, Error> {
-        let opt_journey = self.next_journey(edge, start)?;
+        let mut min_wait = TimeDelta::MAX;
+        let mut opt_journey = None;
+        self.periods.extend(edge.operating_periods());
+        for journey in edge.journeys() {
+            let current_departure = Self::u16_to_time(journey.departure());
+            let (wait_duration, next_day) = if current_departure < start.time() {
+                (current_departure - start.time() + TimeDelta::days(1), true)
+            } else {
+                (current_departure - start.time(), false)
+            };
+            if min_wait < wait_duration {
+                continue;
+            }
+            let period = &self.periods[journey.operating_period_index() as usize];
+            let check_date = if next_day {
+                start + TimeDelta::days(1)
+            } else {
+                start
+            };
+            if !self.valid_on(period, check_date.date())? {
+                continue;
+            }
+            min_wait = wait_duration;
+            opt_journey = Some(journey);
+        }
+        self.periods.clear();
+
         if opt_journey.is_none() {
             return Ok(None);
         }
         let journey = opt_journey.unwrap();
+        if start + min_wait > max_time {
+            return Ok(None);
+        }
         let arrival = Self::u16_to_time(journey.arrival());
         let duration = arrival - start.time();
         if duration >= chrono::Duration::zero() {
@@ -509,7 +515,7 @@ impl<'a, 'b: 'a> IsochroneDijsktra<'a, 'b> {
             let departure = start + current.duration;
             for out in &current.node.outgoing {
                 let opt_walk = Self::get_walk(out);
-                let opt_journey = self.next_journey_duration(out, departure)?;
+                let opt_journey = self.next_journey_duration(out, departure, max_time)?;
                 let out_duration = match (opt_walk, opt_journey) {
                     (None, None) => continue,
                     (None, Some(j)) => j,
