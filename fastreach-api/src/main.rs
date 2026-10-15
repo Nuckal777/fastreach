@@ -23,8 +23,8 @@ const MAX_MINUTES_DEFAULT: i64 = 120;
 const PARALLEL_DEFAULT: usize = 2;
 
 static GRAPH_DATAS: LazyLock<Vec<Mmap>> = LazyLock::new(|| {
-    let mut result = Vec::<Mmap>::new();
     const DATA_DIR: &str = "data";
+    let mut result = Vec::<Mmap>::new();
     let dir_iter = std::fs::read_dir(DATA_DIR).expect("failed to list data directory");
     let dir_paths: Result<Vec<PathBuf>, std::io::Error> =
         dir_iter.map(|d| d.map(|e| e.path())).collect();
@@ -81,10 +81,10 @@ struct DatasetsHandler {
 }
 
 impl DatasetsHandler {
-    fn handle_datasets(&self) -> Result<DatasetsReply, HandlerError> {
-        Ok(DatasetsReply {
+    fn handle_datasets(&self) -> DatasetsReply {
+        DatasetsReply {
             datasets: self.infos.clone(),
-        })
+        }
     }
 }
 
@@ -100,9 +100,8 @@ impl IsochroneHandler<'_> {
         }
         let id = str::parse::<u64>(&body.id)
             .map_err(|_| HandlerError::BadRequest("cannot parse id".to_owned()))?;
-        let graph = match self.graphs.get(body.dataset) {
-            Some(g) => g,
-            None => return Err(HandlerError::BadRequest("dataset out of range".to_owned())),
+        let Some(graph) = self.graphs.get(body.dataset) else {
+            return Err(HandlerError::BadRequest("dataset out of range".to_owned()));
         };
         let start_idx = graph
             .ids
@@ -204,15 +203,8 @@ async fn main() {
         .then(move || {
             let local_handler = datasets_handler.clone();
             async move {
-                match local_handler.handle_datasets() {
-                    Ok(reply) => reply::with_status(reply::json(&reply), StatusCode::OK),
-                    Err(HandlerError::BadRequest(msg)) => {
-                        reply::with_status(reply::json(&msg), StatusCode::BAD_REQUEST)
-                    }
-                    Err(HandlerError::InternalServerError(msg)) => {
-                        reply::with_status(reply::json(&msg), StatusCode::INTERNAL_SERVER_ERROR)
-                    }
-                }
+                let datasets = local_handler.handle_datasets();
+                reply::with_status(reply::json(&datasets), StatusCode::OK)
             }
         });
 

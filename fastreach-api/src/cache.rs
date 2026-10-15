@@ -12,7 +12,7 @@ struct NodeInfo {
     name: String,
 }
 
-pub fn build_nodes_cache<'a>(graphs: &[Graph<'a>]) -> Result<(), Box<dyn std::error::Error>> {
+pub fn build_nodes_cache(graphs: &[Graph<'_>]) -> Result<(), Box<dyn std::error::Error>> {
     for (i, graph) in graphs.iter().enumerate() {
         let filename = get_path_for_nodes(i);
         let file = std::fs::File::create_new(&filename);
@@ -43,12 +43,10 @@ pub fn build_nodes_cache<'a>(graphs: &[Graph<'a>]) -> Result<(), Box<dyn std::er
                     &BrotliEncoderParams::default(),
                 )?;
             }
-            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                println!(
-                    "Nodes cache at {filename} exists. Consider deleting, if graph data changed."
-                );
-                continue;
-            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => println!(
+                "Nodes cache at {filename} exists. Consider deleting, if graph data changed."
+            ),
+
             Err(e) => return Err(Box::new(e)),
         }
     }

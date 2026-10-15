@@ -107,9 +107,10 @@ impl<'a> Iterator for JourneyIterator<'a> {
         if self.index == self.data.len() {
             return None;
         }
-        if self.index > self.data.len() {
-            panic!("read required beyond journey boundary");
-        }
+        assert!(
+            self.index <= self.data.len(),
+            "read required beyond journey boundary"
+        );
         let period_byte = self.data[self.index + 3];
         let journey_len = if period_byte < 128 { 4 } else { 5 };
         let out = Journey {
@@ -121,13 +122,17 @@ impl<'a> Iterator for JourneyIterator<'a> {
 }
 
 impl<'a> Edge<'a> {
+    /// Creates an Edge from a reader.
+    /// # Errors
+    /// I/O Errors
+    #[allow(clippy::cast_possible_truncation)]
     pub fn from_reader(reader: &mut std::io::Cursor<&'a [u8]>) -> Result<Edge<'a>, std::io::Error> {
         let start = reader.position();
         reader.seek_relative(10)?;
         let journey_bytes = reader.read_u32::<byteorder::LE>()?;
-        reader.seek_relative(journey_bytes as i64)?;
+        reader.seek_relative(i64::from(journey_bytes))?;
         let period_bytes = reader.read_u16::<byteorder::LE>()?;
-        reader.seek_relative(period_bytes as i64)?;
+        reader.seek_relative(i64::from(period_bytes))?;
         let end = reader.position();
         Ok(Edge {
             data: &reader.get_ref()[start as usize..end as usize],
@@ -207,10 +212,10 @@ impl Journey<'_> {
     pub fn operating_period_index(&self) -> u16 {
         let byte1 = self.data[3];
         if byte1 < 128 {
-            return byte1 as u16;
+            return u16::from(byte1);
         }
         let byte2 = self.data[4];
-        (((byte1 & 0x7F) as u16) << 8) | (byte2 as u16)
+        (u16::from(byte1 & 0x7F) << 8) | u16::from(byte2)
     }
 }
 
@@ -394,6 +399,10 @@ pub struct IsochroneDijsktra<'a, 'b> {
     periods: Vec<OperatingPeriod<'b>>,
 }
 
+/// Converts an u16 to a date.
+/// # Panics
+/// If the date cannot be represented.
+#[must_use]
 pub fn u16_to_date(number: u16) -> NaiveDate {
     let year = number & 0b_0000_0000_0111_1111;
     let month = (number >> 7) & 0b_0000_0000_0000_1111;
